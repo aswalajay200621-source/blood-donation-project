@@ -161,20 +161,31 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
 
       {/* Donor Table */}
       <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: '1080px', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(248,250,252,0.8)', borderBottom: '1px solid #e2e8f0' }}>
-                {['Donor ID', 'Full Name & Age', 'Blood Group', 'Contact', 'Last Donated', 'Eligibility Status', 'Total Units', 'Action'].map((h, i) => (
-                  <th key={h} style={{
-                    padding: '14px 24px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+              <tr style={{ background: 'rgba(248,250,252,0.9)', borderBottom: '1px solid #e2e8f0' }}>
+                {[
+                  { label: 'Donor ID', align: 'left', width: '140px' },
+                  { label: 'Full Name & Age', align: 'left', width: 'auto' },
+                  { label: 'Blood Group', align: 'left', width: '110px' },
+                  { label: 'Contact', align: 'left', width: '220px' },
+                  { label: 'Last Donated', align: 'left', width: '190px' },
+                  { label: 'Eligibility Status', align: 'left', width: '160px' },
+                  { label: 'Total Units', align: 'left', width: '110px' },
+                  { label: 'Action', align: 'right', width: '150px' }
+                ].map((h) => (
+                  <th key={h.label} style={{
+                    padding: '12px 16px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
                     letterSpacing: '0.06em', color: '#475569',
-                    textAlign: i === 7 ? 'right' : 'left'
-                  }}>{h}</th>
+                    textAlign: h.align,
+                    width: h.width,
+                    whiteSpace: 'nowrap'
+                  }}>{h.label}</th>
                 ))}
               </tr>
             </thead>
-            <tbody style={{ fontSize: '15px', color: '#1e293b' }}>
+            <tbody style={{ fontSize: '14px', color: '#1e293b' }}>
               {loading ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#64748b' }}>
@@ -185,46 +196,51 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
               ) : donors.length > 0 ? donors.map((d) => {
                 const elig = getEligibilityDisplay(d);
                 const isExpanded = expandedRow === d.id;
+                // Compact Donor ID formatting
+                const formattedId = typeof d.id === 'string' && d.id.includes('-')
+                  ? `DNR-${d.id.substring(0, 8).toUpperCase()}`
+                  : `DNR-${String(d.id || 0).padStart(5, '0')}`;
+
                 return (
                   <React.Fragment key={d.id}>
                     <tr style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s', cursor: 'default' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(248,250,252,0.7)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <td style={{ padding: '16px 24px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                        #{d.id ? `DNR-${new Date().getFullYear()}-${String(d.id).padStart(4, '0')}` : 'DNR-0000'}
+                      <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
+                        #{formattedId}
                       </td>
-                      <td style={{ padding: '16px 24px' }}>
+                      <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '15px' }}>{d.full_name}</div>
                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{d.age ? `${d.age} yrs` : ''}{d.age && d.gender ? ' • ' : ''}{d.gender || ''}</div>
                       </td>
-                      <td style={{ padding: '16px 24px', fontWeight: 700, fontSize: '18px', color: getRareBgColor(d.blood_group) }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '17px', color: getRareBgColor(d.blood_group), whiteSpace: 'nowrap' }}>
                         {d.blood_group}
                       </td>
-                      <td style={{ padding: '16px 24px' }}>
+                      <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>{d.phone}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{d.email}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b', wordBreak: 'break-all' }}>{d.email}</div>
                       </td>
-                      <td style={{ padding: '16px 24px' }}>
+                      <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b' }}>{d.last_donation_date || '—'}</div>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>{d.camp_location || 'Hospital Center'}</div>
                       </td>
-                      <td style={{ padding: '16px 24px' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: d.eligibility?.isEligible ? 600 : 500, color: elig.color }}>
-                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: elig.dot, flexShrink: 0 }} />
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: d.eligibility?.isEligible ? 600 : 500, color: elig.color }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: elig.dot, flexShrink: 0 }} />
                           {elig.label}
                         </span>
                       </td>
-                      <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 500, color: '#334155' }}>
+                      <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: 500, color: '#334155', whiteSpace: 'nowrap' }}>
                         {d.total_donations_count || 0} units
                       </td>
-                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
                           {d.eligibility?.isEligible && (
                             <button
                               onClick={() => handleSendReminder(d)}
                               disabled={sendingReminderId === d.id}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#ffffff', background: '#1a365d', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#ffffff', background: '#1a365d', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
                             >
                               <Send size={12} />
                               {sendingReminderId === d.id ? 'Sending...' : 'Remind'}
@@ -232,7 +248,7 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
                           )}
                           <button
                             onClick={() => toggleRow(d.id)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 600, color: '#1a365d', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 600, color: '#1a365d', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', whiteSpace: 'nowrap' }}
                           >
                             Details
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

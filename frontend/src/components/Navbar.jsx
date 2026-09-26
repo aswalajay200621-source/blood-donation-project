@@ -22,7 +22,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
   return (
     <header className="w-full bg-white border-b border-surface-border sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Upper branding row */}
         <div className="h-20 flex items-center justify-between">
           <div className="flex items-center gap-6">

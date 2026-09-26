@@ -1,207 +1,95 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import {
-  Heart,
-  UserPlus,
-  FileSpreadsheet,
-  Users,
-  Bell,
-  Settings,
-  ShieldCheck,
-  LayoutDashboard,
-  LogOut,
-  UserCheck,
-  Clock,
-  Radio,
-  Hospital
-} from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, systemSettings }) {
+export default function Navbar({ activeTab, setActiveTab }) {
   const { user, logout, isAdmin } = useAuth();
 
-  const isEmailActive = systemSettings?.email_enabled === 'true';
-  const isWhatsAppActive = systemSettings?.whatsapp_enabled !== 'false';
-
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'camp-entry', label: 'Live Camp Entry', icon: UserPlus, highlight: true },
-    { id: 'donors', label: 'Donors Directory', icon: Users },
-    { id: 'excel-import', label: 'Excel Migration (Phase 1)', icon: FileSpreadsheet },
-    { id: 'notifications', label: 'Notification Center', icon: Bell },
+    { id: 'dashboard', label: 'Overview & Stock' },
+    { id: 'camp-entry', label: 'Live Camp Entry' },
+    { id: 'donors', label: 'Donors Directory' },
+    { id: 'excel-import', label: 'Excel Migration' },
+    { id: 'notifications', label: 'Reminders' },
     ...(isAdmin ? [
-      { id: 'settings', label: 'System Settings', icon: Settings },
-      { id: 'security', label: 'Security & Audit', icon: ShieldCheck }
+      { id: 'security', label: 'Audit & Security' },
+      { id: 'settings', label: 'Settings' }
     ] : [])
   ];
 
+  const displayName = user?.name || 'Dr. R. Sharma';
+  const roleName = user?.role === 'admin' ? 'Chief Medical Officer' : 'Camp Officer';
+  const initials = displayName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'RS';
+
   return (
-    <header style={{
-      background: '#ffffff',
-      borderBottom: '1px solid var(--border-light)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: 'var(--shadow-sm)'
-    }}>
-      {/* Top Clinical Status Bar */}
-      <div style={{
-        background: '#0f172a',
-        color: '#f8fafc',
-        padding: '6px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
-            <Radio size={12} color="#22c55e" />
-            <strong style={{ color: '#fff' }}>Medical College Hospital</strong> Blood Bank Server #1
-          </span>
-          <span style={{ color: '#334155' }}>|</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isWhatsAppActive ? '#4ade80' : '#94a3b8' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isWhatsAppActive ? '#22c55e' : '#64748b' }} />
-            WhatsApp API: {isWhatsAppActive ? 'Active' : 'Offline'}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isEmailActive ? '#38bdf8' : '#fbbf24' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isEmailActive ? '#38bdf8' : '#f59e0b' }} />
-            Email SMTP: {isEmailActive ? 'Active' : 'Standby (Disabled by default)'}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#94a3b8' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={12} />
-            Daily Auto-Scan: 08:00 AM (3-Month Gap Check)
-          </span>
-        </div>
-      </div>
-
-      {/* Main Nav Header */}
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '12px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        {/* Logo & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'var(--blood-red)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)'
-          }}>
-            <Heart size={22} color="#ffffff" fill="#ffffff" />
+    <header className="w-full bg-white border-b border-surface-border sticky top-0 z-40">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+        {/* Upper branding row */}
+        <div className="h-20 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <img
+              alt="Apex Hospital Blood Bank Logo"
+              className="h-9 w-auto object-contain cursor-pointer"
+              onClick={() => setActiveTab('dashboard')}
+              src="https://lh3.googleusercontent.com/aida/AEtjO1Xm6WQ__w7QRVA5t4ujaWilR2yk1B7TaH58aWOIqKa3UPOyOS_QlkPQkLFleS8vZ5WC2919MVmiroUOWWtMpg89zlKubWMhVv8M22IXCxJJi4qJxIc8v_VzKMU02_y9QlGGHbxVTJeq7NqluefRt7UkMfRzAYUdizGbKyINFHlA9hH0PfzO76ddNqL825-Wf3c5BWxq2v8na7bxTZNppQYoNfEwR-P71r9dC_YJ65L1igCPM_cqE_RXwA"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            {/* Fallback if external image is blocked */}
+            <div style={{ display: 'none' }} className="items-center gap-2 font-bold text-primary text-lg">
+              <span className="text-secondary font-black text-xl">♥</span> Apex Hospital
+            </div>
+            <span className="hidden md:inline-block h-5 w-px bg-surface-border"></span>
+            <span className="hidden md:inline-block text-xs font-medium text-text-muted tracking-wide">
+              Station #04 • On-Premise System
+            </span>
           </div>
-          <div>
-            <div style={{
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--text-dark)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.1
-            }}>
-              APEX HOSPITAL BLOOD CENTER
+
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex items-center gap-3 text-right">
+              <div>
+                <div className="text-sm font-semibold text-text-main leading-tight">{displayName}</div>
+                <div className="text-xs text-text-muted">{roleName}</div>
+              </div>
+              <div
+                title={user?.email ? `${user.email} (Click to Sign Out)` : 'Click to Sign Out'}
+                onClick={logout}
+                className="w-9 h-9 rounded-full bg-surface-subtle border border-surface-border flex items-center justify-center text-primary font-medium text-sm cursor-pointer hover:border-secondary transition-colors"
+              >
+                {initials}
+              </div>
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              3-Month Safety Window & Donor Reminder Portal
-            </div>
+
+            <button
+              onClick={() => setActiveTab('camp-entry')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-md transition-colors shadow-sm cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Register Donor
+            </button>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+        {/* Flat, Understated Navigation */}
+        <nav className="flex items-center gap-8 overflow-x-auto text-sm">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '9px 15px',
-                  borderRadius: 'var(--radius-md)',
-                  border: isActive
-                    ? '1px solid var(--brand-primary-border)'
-                    : item.highlight
-                    ? '1px solid var(--blood-red-border)'
-                    : '1px solid transparent',
-                  background: isActive
-                    ? 'var(--brand-primary-light)'
-                    : item.highlight
-                    ? 'var(--blood-red-light)'
-                    : 'transparent',
-                  color: isActive
-                    ? 'var(--brand-primary)'
-                    : item.highlight
-                    ? 'var(--blood-red)'
-                    : 'var(--text-body)',
-                  fontWeight: isActive || item.highlight ? 700 : 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
+                className={`py-3.5 border-b-2 font-semibold whitespace-nowrap transition-colors bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer ${
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-text-muted hover:text-text-main'
+                }`}
               >
-                <Icon size={16} />
-                <span>{item.label}</span>
+                {item.label}
               </button>
             );
           })}
         </nav>
-
-        {/* User Info & Logout */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            background: 'var(--bg-subtle)',
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-light)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <div style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              background: user?.role === 'admin' ? '#f3e8ff' : '#e0f2fe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <UserCheck size={16} color={user?.role === 'admin' ? '#7e22ce' : '#0369a1'} />
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-dark)' }}>
-                {user?.name || 'Staff User'}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                {user?.role === 'admin' ? 'Chief Medical Officer' : 'Camp Nurse / Staff'}
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={logout}
-            title="Sign Out"
-            className="btn btn-secondary btn-sm"
-          >
-            <LogOut size={15} />
-            <span>Sign Out</span>
-          </button>
-        </div>
       </div>
     </header>
   );

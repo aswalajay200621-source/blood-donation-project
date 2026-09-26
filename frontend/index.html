@@ -6,10 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Apex Hospital | Blood Donation Management & Reminder System</title>
     <meta name="description" content="Medical College Hospital Blood Donation Tracking, 3-Month Health Window Safety Enforcer, and Automated Multi-Channel Reminder Dispatcher" />
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Public Sans & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#1A365D",
+              "primary-dark": "#0F233D",
+              secondary: "#C53030",
+              "secondary-dark": "#9B2C2C",
+              surface: "#FFFFFF",
+              "surface-subtle": "#F8FAFC",
+              "surface-border": "#E2E8F0",
+              "text-main": "#1A202C",
+              "text-muted": "#64748B",
+              "text-light": "#94A3B8",
+              "state-error": "#DC2626",
+              "state-error-soft": "#FEF2F2",
+              "state-success": "#16A34A",
+              "state-success-soft": "#F0FDF4",
+              "state-warning": "#D97706",
+              "state-warning-soft": "#FFFBEB"
+            },
+            fontFamily: {
+              sans: ["Public Sans", "sans-serif"]
+            }
+          }
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -61,7 +61,7 @@ export default function App() {
         systemSettings={systemSettings}
       />
 
-      <main className="main-content">
+      <main className="w-full flex-1 max-w-6xl mx-auto px-6 lg:px-8 py-10">
         {activeTab === 'dashboard' && (
           <DashboardView
             onNavigate={setActiveTab}
@@ -103,6 +103,14 @@ export default function App() {
           <SecurityAuditView />
         )}
       </main>
+
+      {/* Clean, Calm Footer */}
+      <footer className="w-full border-t border-surface-border py-8 mt-12 bg-white text-xs text-text-muted">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>Apex Hospital Blood Bank Helpline: <strong className="text-text-main font-semibold">(011) 2658-8500</strong></div>
+          <div>Clinical System v2.4-LTS • Connected to Secure Local Server</div>
+        </div>
+      </footer>
 
       {/* Global Donor Details Drawer / Modal */}
       {selectedDonor && (

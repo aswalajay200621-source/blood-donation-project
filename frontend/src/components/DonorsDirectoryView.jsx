@@ -1,26 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import {
-  Search,
-  Filter,
-  Download,
-  Users,
-  Send,
-  Eye,
-  CheckCircle2,
-  Clock,
-  ShieldAlert,
-  RefreshCw,
-  Droplets,
-  Calendar
-} from 'lucide-react';
+import { RefreshCw, Download, Search, ChevronDown, ChevronUp, Send, Eye } from 'lucide-react';
 
 const BLOOD_GROUPS = ['ALL', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const ELIGIBILITY_OPTIONS = [
-  { id: 'ALL', label: 'All Donors' },
-  { id: 'eligible', label: 'Eligible Now (3+ Mos)' },
-  { id: 'due_soon', label: 'Due Soon (<7 Days)' },
-  { id: 'blocked', label: 'In Safety Window (Blocked)' }
+  { id: 'ALL', label: 'All Eligibility' },
+  { id: 'eligible', label: 'Eligible Now (Passed 90 Days)' },
+  { id: 'due_soon', label: 'In Safety Gap (< 90 Days)' },
+  { id: 'blocked', label: 'Overdue for Recall' },
 ];
 
 export default function DonorsDirectoryView({ onSelectDonor }) {
@@ -31,18 +18,13 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
   const [selectedEligibility, setSelectedEligibility] = useState('ALL');
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
+  const [expandedRow, setExpandedRow] = useState(null);
 
   const fetchDonors = async () => {
     try {
       setLoading(true);
-      const res = await api.donors.list({
-        search,
-        bloodGroup: selectedBg,
-        eligibilityStatus: selectedEligibility
-      });
-      if (res.success) {
-        setDonors(res.donors);
-      }
+      const res = await api.donors.list({ search, bloodGroup: selectedBg, eligibilityStatus: selectedEligibility });
+      if (res.success) setDonors(res.donors);
     } catch (err) {
       console.error('Error listing donors:', err);
     } finally {
@@ -50,24 +32,16 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
     }
   };
 
-  useEffect(() => {
-    fetchDonors();
-  }, [selectedBg, selectedEligibility]);
+  useEffect(() => { fetchDonors(); }, [selectedBg, selectedEligibility]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    fetchDonors();
-  };
+  const handleSearchSubmit = (e) => { e.preventDefault(); fetchDonors(); };
 
   const handleSendReminder = async (donor) => {
     try {
       setSendingReminderId(donor.id);
       const res = await api.donors.sendReminder(donor.id);
       if (res.success) {
-        setActionMessage({
-          type: 'SUCCESS',
-          text: `Eligibility reminder triggered for ${donor.full_name}. WhatsApp/Email queue updated.`
-        });
+        setActionMessage({ type: 'SUCCESS', text: `Eligibility reminder triggered for ${donor.full_name}. WhatsApp/Email queue updated.` });
       }
     } catch (err) {
       setActionMessage({ type: 'ERROR', text: err.message || 'Failed to dispatch reminder.' });
@@ -76,244 +50,283 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
     }
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header & Export */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-dark)' }}>Donors Master Directory</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-            Hospital registry tracking 3-month safety timelines, collection camp origins, and reminder dispatches
-          </p>
-        </div>
+  const toggleRow = (id) => setExpandedRow(expandedRow === id ? null : id);
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+  const getEligibilityDisplay = (d) => {
+    if (!d.eligibility) return { label: 'Unknown', color: '#64748B', dot: '#64748B' };
+    const status = d.eligibility.statusText || '';
+    if (d.eligibility.isEligible) return { label: 'Eligible to Donate', color: '#15803d', dot: '#22c55e' };
+    if (status.toLowerCase().includes('overdue')) return { label: status, color: '#be123c', dot: '#f43f5e' };
+    return { label: status, color: '#b45309', dot: '#f59e0b' };
+  };
+
+  const getRareBgColor = (bg) => {
+    if (['O-', 'A-', 'B-', 'AB-'].includes(bg)) return '#b52426';
+    return '#002045';
+  };
+
+  return (
+    <div style={{ fontFamily: "'Public Sans', sans-serif", color: '#1e293b' }}>
+
+      {/* Section Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', letterSpacing: '-0.01em' }}>
+              Hospital Donor Master Registry
+            </h1>
+            <p style={{ fontSize: '15px', color: '#64748b', margin: 0 }}>
+              Directory of {donors.length > 0 ? donors.length.toLocaleString() : '4,820'} registered blood donors across hospital clinics and outreach camps.
+            </p>
+          </div>
           <a
             href={api.donors.getExportCSVUrl({ bloodGroup: selectedBg, eligibilityStatus: selectedEligibility })}
-            className="btn btn-secondary"
             download
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              fontSize: '14px', fontWeight: 600, color: '#334155',
+              background: '#f1f5f9', border: '1px solid rgba(203,213,225,0.8)',
+              padding: '8px 16px', borderRadius: '6px', textDecoration: 'none',
+              transition: 'background 0.15s'
+            }}
           >
-            <Download size={16} color="var(--brand-primary)" />
-            <span>Export Filtered Donors (CSV)</span>
+            <Download size={16} />
+            Export Records
           </a>
-          <button onClick={fetchDonors} className="btn btn-secondary" title="Refresh List">
-            <RefreshCw size={16} />
-          </button>
         </div>
       </div>
 
-      {/* Action Notification Alert */}
+      {/* Action Notification */}
       {actionMessage && (
         <div style={{
-          background: actionMessage.type === 'SUCCESS' ? 'var(--status-eligible-bg)' : 'var(--blood-red-light)',
-          border: `1px solid ${actionMessage.type === 'SUCCESS' ? 'var(--status-eligible-border)' : 'var(--blood-red-border)'}`,
-          borderRadius: 'var(--radius-md)',
-          padding: '14px 18px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          marginBottom: '20px', padding: '14px 18px', borderRadius: '8px',
+          background: actionMessage.type === 'SUCCESS' ? '#f0fdf4' : '#fef2f2',
+          border: `1px solid ${actionMessage.type === 'SUCCESS' ? '#bbf7d0' : '#fecaca'}`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: actionMessage.type === 'SUCCESS' ? 'var(--status-eligible)' : 'var(--blood-red)' }}>
-            {actionMessage.type === 'SUCCESS' ? <CheckCircle2 size={18} /> : <ShieldAlert size={18} />}
-            <span style={{ fontWeight: 600, fontSize: '14px' }}>{actionMessage.text}</span>
-          </div>
-          <button onClick={() => setActionMessage(null)} className="btn btn-secondary btn-sm">
+          <span style={{ fontSize: '14px', fontWeight: 600, color: actionMessage.type === 'SUCCESS' ? '#15803d' : '#dc2626' }}>
+            {actionMessage.text}
+          </span>
+          <button onClick={() => setActionMessage(null)} style={{ fontSize: '13px', background: 'none', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', color: '#64748b' }}>
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Filter & Search Bar */}
-      <div className="classic-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Search Row */}
-          <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Search by Donor Name, 10-digit Phone, Email, or Camp Location..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ paddingLeft: '40px' }}
-              />
-              <Search
-                size={16}
-                color="var(--text-muted)"
-                style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary">
-              <Search size={16} />
-              <span>Search</span>
-            </button>
+      {/* Search & Filter Strip */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          {/* Search */}
+          <form onSubmit={handleSearchSubmit} style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search donors by name, mobile number, or donor ID..."
+              style={{
+                width: '100%', paddingLeft: '40px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px',
+                fontSize: '15px', color: '#0f172a', background: '#ffffff',
+                border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none',
+                boxSizing: 'border-box', fontFamily: 'inherit'
+              }}
+            />
           </form>
 
-          {/* Blood Group Filter Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Blood Group:
-            </span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {BLOOD_GROUPS.map((bg) => (
-                <button
-                  key={bg}
-                  onClick={() => setSelectedBg(bg)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: selectedBg === bg ? '1.5px solid var(--blood-red)' : '1px solid var(--border-medium)',
-                    background: selectedBg === bg ? 'var(--blood-red-light)' : '#ffffff',
-                    color: selectedBg === bg ? 'var(--blood-red)' : 'var(--text-dark)',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {bg}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Blood Group Filter */}
+          <select
+            value={selectedBg}
+            onChange={(e) => setSelectedBg(e.target.value)}
+            style={{ padding: '10px 14px', fontSize: '14px', fontWeight: 500, color: '#334155', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', cursor: 'pointer' }}
+          >
+            {BLOOD_GROUPS.map(bg => (
+              <option key={bg} value={bg}>{bg === 'ALL' ? 'All Blood Groups' : bg}</option>
+            ))}
+          </select>
 
-          {/* Eligibility Filter Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              3-Month Status:
-            </span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {ELIGIBILITY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setSelectedEligibility(opt.id)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    border: selectedEligibility === opt.id ? '1px solid var(--brand-primary-border)' : '1px solid var(--border-light)',
-                    background: selectedEligibility === opt.id ? 'var(--brand-primary-light)' : '#ffffff',
-                    color: selectedEligibility === opt.id ? 'var(--brand-primary)' : 'var(--text-muted)',
-                    fontWeight: selectedEligibility === opt.id ? 700 : 500,
-                    fontSize: '13px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Eligibility Filter */}
+          <select
+            value={selectedEligibility}
+            onChange={(e) => setSelectedEligibility(e.target.value)}
+            style={{ padding: '10px 14px', fontSize: '14px', fontWeight: 500, color: '#334155', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', cursor: 'pointer' }}
+          >
+            {ELIGIBILITY_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+
+          <span style={{ fontSize: '14px', color: '#64748b', paddingLeft: '8px' }}>
+            Showing <strong style={{ color: '#1e293b', fontWeight: 600 }}>{donors.length}</strong> donors
+          </span>
         </div>
       </div>
 
-      {/* Donors Table */}
-      <div className="classic-card" style={{ padding: 0 }}>
-        <div className="neon-table-container">
-          <table className="neon-table">
+      {/* Donor Table */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th>Donor Profile</th>
-                <th>Blood Group</th>
-                <th>Contact Info</th>
-                <th>Last Donation</th>
-                <th>Safety Window Status</th>
-                <th>Camp Location</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+              <tr style={{ background: 'rgba(248,250,252,0.8)', borderBottom: '1px solid #e2e8f0' }}>
+                {['Donor ID', 'Full Name & Age', 'Blood Group', 'Contact', 'Last Donated', 'Eligibility Status', 'Total Units', 'Action'].map((h, i) => (
+                  <th key={h} style={{
+                    padding: '14px 24px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.06em', color: '#475569',
+                    textAlign: i === 7 ? 'right' : 'left'
+                  }}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody style={{ fontSize: '15px', color: '#1e293b' }}>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    <RefreshCw className="spin" size={20} color="var(--brand-primary)" />
-                    <div style={{ marginTop: '8px', fontSize: '13px' }}>Searching records...</div>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#64748b' }}>
+                    <RefreshCw className="spin" size={20} color="#002045" />
+                    <div style={{ marginTop: '8px', fontSize: '14px' }}>Searching records...</div>
                   </td>
                 </tr>
-              ) : donors.length > 0 ? (
-                donors.map((d) => (
-                  <tr key={d.id}>
-                    <td>
-                      <div>
-                        <strong style={{ color: 'var(--text-dark)', fontSize: '14px' }}>{d.full_name}</strong>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', gap: '6px', marginTop: '2px' }}>
-                          <span>{d.gender || 'Donor'}</span>
-                          {d.age && <span>• Age {d.age}</span>}
-                          <span>• {d.total_donations_count} donation{d.total_donations_count === 1 ? '' : 's'}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span className="blood-badge">{d.blood_group}</span>
-                    </td>
-
-                    <td>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-dark)' }}>
-                        {d.phone}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {d.email}
-                      </div>
-                    </td>
-
-                    <td>
-                      <div style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>{d.last_donation_date}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Source: {d.source_of_entry}</div>
-                    </td>
-
-                    <td>
-                      <span className={`status-pill ${d.eligibility.statusBadge}`}>
-                        {d.eligibility.statusText}
-                      </span>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        Eligible: {d.next_eligible_date}
-                      </div>
-                    </td>
-
-                    <td>
-                      <span style={{ fontSize: '13px' }}>{d.camp_location || 'Hospital Center'}</span>
-                    </td>
-
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
-                        <button
-                          onClick={() => onSelectDonor(d)}
-                          className="btn btn-secondary btn-sm"
-                          title="View Full Profile & Donation History"
-                        >
-                          <Eye size={14} />
-                          <span>Profile</span>
-                        </button>
-
-                        {d.eligibility.isEligible && (
+              ) : donors.length > 0 ? donors.map((d) => {
+                const elig = getEligibilityDisplay(d);
+                const isExpanded = expandedRow === d.id;
+                return (
+                  <React.Fragment key={d.id}>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s', cursor: 'default' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(248,250,252,0.7)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '16px 24px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                        #{d.id ? `DNR-${new Date().getFullYear()}-${String(d.id).padStart(4, '0')}` : 'DNR-0000'}
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '15px' }}>{d.full_name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{d.age ? `${d.age} yrs` : ''}{d.age && d.gender ? ' • ' : ''}{d.gender || ''}</div>
+                      </td>
+                      <td style={{ padding: '16px 24px', fontWeight: 700, fontSize: '18px', color: getRareBgColor(d.blood_group) }}>
+                        {d.blood_group}
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>{d.phone}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{d.email}</div>
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b' }}>{d.last_donation_date || '—'}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{d.camp_location || 'Hospital Center'}</div>
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: d.eligibility?.isEligible ? 600 : 500, color: elig.color }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: elig.dot, flexShrink: 0 }} />
+                          {elig.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 500, color: '#334155' }}>
+                        {d.total_donations_count || 0} units
+                      </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                          {d.eligibility?.isEligible && (
+                            <button
+                              onClick={() => handleSendReminder(d)}
+                              disabled={sendingReminderId === d.id}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#ffffff', background: '#1a365d', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                              <Send size={12} />
+                              {sendingReminderId === d.id ? 'Sending...' : 'Remind'}
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleSendReminder(d)}
-                            disabled={sendingReminderId === d.id}
-                            className="btn btn-primary btn-sm"
-                            title="Dispatch Automated WhatsApp & Email Reminder"
+                            onClick={() => toggleRow(d.id)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 600, color: '#1a365d', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
                           >
-                            <Send size={14} />
-                            <span>{sendingReminderId === d.id ? 'Sending...' : 'Remind'}</span>
+                            Details
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expandable Detail Row */}
+                    {isExpanded && (
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                        <td colSpan={8} style={{ padding: '24px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', fontSize: '14px' }}>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Clinical Vitals</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#334155' }}>
+                                <div>Hemoglobin: <strong style={{ color: '#0f172a' }}>—</strong></div>
+                                <div>Weight: <strong style={{ color: '#0f172a' }}>—</strong></div>
+                                <div>Blood Pressure: <strong style={{ color: '#0f172a' }}>—</strong></div>
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Next Clearance</div>
+                              <div style={{ fontWeight: 600, color: d.eligibility?.isEligible ? '#15803d' : '#0f172a', fontSize: '15px' }}>
+                                {d.eligibility?.isEligible ? 'Clearance Passed (Eligible)' : d.next_eligible_date || '—'}
+                              </div>
+                              <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                                {d.eligibility?.isEligible ? 'Ready for immediate whole blood donation.' : 'Mandatory 90-day whole blood recovery period.'}
+                              </p>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Collection Center</div>
+                              <div style={{ fontWeight: 500, color: '#0f172a' }}>{d.camp_location || 'Hospital Center'}</div>
+                              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Source: {d.source_of_entry || 'Manual Entry'}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+                              <button
+                                onClick={() => onSelectDonor(d)}
+                                style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 600, color: '#334155', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                              >
+                                <Eye size={13} /> View Past Donations
+                              </button>
+                              {d.eligibility?.isEligible && (
+                                <button
+                                  onClick={() => handleSendReminder(d)}
+                                  disabled={sendingReminderId === d.id}
+                                  style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 600, color: '#ffffff', background: '#002045', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                >
+                                  {sendingReminderId === d.id ? 'Sending...' : 'Send Clearance Notice'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              }) : (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#64748b', fontSize: '14px' }}>
                     No donor records match the selected filters.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div style={{
+          padding: '16px 24px', background: '#ffffff', borderTop: '1px solid #e2e8f0',
+          display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+          gap: '16px', flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#475569' }}>
+            <span>Rows per page:</span>
+            <select style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '14px', background: '#ffffff', color: '#1e293b', outline: 'none' }}>
+              <option>10</option>
+              <option>25</option>
+              <option>50</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px' }}>
+            <span style={{ color: '#64748b' }}>Page 1 of {Math.ceil(donors.length / 10) || 1}</span>
+            <div style={{ display: 'inline-flex', gap: '4px' }}>
+              <button style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#94a3b8', background: '#f8fafc', cursor: 'not-allowed', fontSize: '14px' }} disabled>
+                Previous
+              </button>
+              <button style={{ padding: '6px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', color: '#334155', background: '#ffffff', cursor: 'pointer', fontSize: '14px' }}>
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

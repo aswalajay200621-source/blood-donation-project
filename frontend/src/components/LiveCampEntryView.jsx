@@ -84,12 +84,28 @@ export default function LiveCampEntryView({ onSelectDonor }) {
     e.preventDefault();
     setFormError('');
     setSuccessResult(null);
-    if (phone.length !== 10) { setPhoneError('Phone number must be exactly 10 digits.'); return; }
-    if (!fullName || fullName.trim().length < 2) { setFormError('Please enter donor full name.'); return; }
+    if (!phone || phone.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits.');
+      setFormError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (!fullName || fullName.trim().length < 2) {
+      setFormError('Please enter donor full legal name.');
+      return;
+    }
+    if (!email || !email.trim()) {
+      setEmailError('Email address is required.');
+      setFormError('Email address is required to register a donor.');
+      return;
+    }
+    if (emailError) {
+      setFormError('Please correct the email address format before submitting.');
+      return;
+    }
     try {
       setSubmitting(true);
       const res = await api.donors.create({
-        full_name: fullName, phone, email, blood_group: bloodGroup, gender,
+        full_name: fullName.trim(), phone, email: email.trim(), blood_group: bloodGroup, gender,
         age: age ? parseInt(age, 10) : null, camp_location: campLocation,
         last_donation_date: donationDate, notes, source_of_entry: 'Manual Entry'
       });
@@ -193,13 +209,13 @@ export default function LiveCampEntryView({ onSelectDonor }) {
       {/* STEP 1: Donor Verification */}
       <section style={{ marginBottom: '48px' }}>
         <div style={{ marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: '0 0 2px 0' }}>1. Donor Verification</h2>
-          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Enter mobile number to verify history from Apex Central Registry.</p>
+          <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: '0 0 2px 0' }}>1. Donor Verification & Contact</h2>
+          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Enter mobile number or email address to verify history from Apex Central Registry.</p>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+        {/* Search Bar with Phone & Email */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr)) auto', gap: '12px', alignItems: 'flex-start' }}>
+          <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', fontWeight: 600, color: '#6b7280', pointerEvents: 'none' }}>+91</span>
             <input
               type="tel"
@@ -207,20 +223,31 @@ export default function LiveCampEntryView({ onSelectDonor }) {
               onChange={handlePhoneChange}
               maxLength={10}
               placeholder="Enter 10-digit mobile number"
-              style={{ ...inputStyle, paddingLeft: '48px' }}
+              style={{ ...inputStyle, paddingLeft: '48px', borderColor: phoneError ? '#dc2626' : '#d1d5db' }}
             />
+            {phoneError && <p style={{ marginTop: '4px', fontSize: '12px', color: '#dc2626' }}>{phoneError}</p>}
           </div>
+
+          <div>
+            <input
+              type="email"
+              value={email}
+              onChange={handleEmailChange}
+              placeholder="Donor email (e.g. donor@example.com)"
+              style={{ ...inputStyle, borderColor: emailError ? '#dc2626' : '#d1d5db' }}
+            />
+            {emailError && <p style={{ marginTop: '4px', fontSize: '12px', color: '#dc2626' }}>{emailError}</p>}
+          </div>
+
           <button
             onClick={() => lookupDonor(phone, email)}
             disabled={checkingDuplicate}
-            style={{ height: '48px', padding: '0 24px', background: '#002045', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
+            style={{ height: '48px', padding: '0 24px', background: '#002045', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             {checkingDuplicate ? <RefreshCw className="spin" size={16} /> : <Search size={16} />}
             Search Record
           </button>
         </div>
-
-        {phoneError && <p style={{ marginTop: '6px', fontSize: '12px', color: '#dc2626' }}>{phoneError}</p>}
 
         {/* Donor Found Summary */}
         {existingDonor && (
@@ -271,13 +298,55 @@ export default function LiveCampEntryView({ onSelectDonor }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }}>
             {/* Full Name */}
             <div>
-              <label style={labelStyle}>Full Legal Name</label>
+              <label style={labelStyle}>Full Legal Name <span style={{ color: '#dc2626' }}>*</span></label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <select style={{ ...inputStyle, width: '90px', flex: 'none' }}>
                   <option>Mr.</option><option>Ms.</option><option>Dr.</option><option>Mrs.</option>
                 </select>
-                <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} style={{ ...inputStyle, flex: 1 }} placeholder="Full name" />
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                  placeholder="Full legal name"
+                  required
+                />
               </div>
+            </div>
+
+            {/* Email Address */}
+            <div>
+              <label style={labelStyle}>Email Address <span style={{ color: '#dc2626' }}>*</span></label>
+              <input
+                type="email"
+                value={email}
+                onChange={handleEmailChange}
+                style={{
+                  ...inputStyle,
+                  borderColor: emailError ? '#dc2626' : '#d1d5db'
+                }}
+                placeholder="donor.name@example.com"
+                required
+              />
+              {emailError && <p style={{ marginTop: '4px', fontSize: '12px', color: '#dc2626' }}>{emailError}</p>}
+            </div>
+
+            {/* Mobile Phone */}
+            <div>
+              <label style={labelStyle}>Mobile Phone (10 digits) <span style={{ color: '#dc2626' }}>*</span></label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', fontWeight: 600, color: '#6b7280', pointerEvents: 'none' }}>+91</span>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  maxLength={10}
+                  placeholder="Enter 10-digit mobile number"
+                  style={{ ...inputStyle, paddingLeft: '48px', borderColor: phoneError ? '#dc2626' : '#d1d5db' }}
+                  required
+                />
+              </div>
+              {phoneError && <p style={{ marginTop: '4px', fontSize: '12px', color: '#dc2626' }}>{phoneError}</p>}
             </div>
 
             {/* DOB & Gender */}

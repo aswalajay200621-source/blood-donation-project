@@ -27,8 +27,13 @@ class DonorService {
   /**
    * Validate Email Address
    */
-  validateEmail(email) {
-    if (!email) return { valid: false, error: 'Email address is required' };
+  validateEmail(email, fallbackPhone = '') {
+    if (!email || !String(email).trim()) {
+      if (fallbackPhone) {
+        return { valid: true, sanitized: `${fallbackPhone}@donor.apexhospital.org` };
+      }
+      return { valid: false, error: 'Email address is required' };
+    }
     const clean = String(email).trim().toLowerCase();
     if (!validator.isEmail(clean)) {
       return { valid: false, error: 'Invalid email address format (e.g. donor@example.com)' };
@@ -148,7 +153,7 @@ class DonorService {
     const phoneVal = this.validatePhone(data.phone);
     if (!phoneVal.valid) throw new Error(phoneVal.error);
 
-    const emailVal = this.validateEmail(data.email);
+    const emailVal = this.validateEmail(data.email, phoneVal.sanitized);
     if (!emailVal.valid) throw new Error(emailVal.error);
 
     const bgVal = this.validateBloodGroup(data.blood_group);

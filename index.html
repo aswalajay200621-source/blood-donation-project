@@ -3,37 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aswal S Ajay | Computer Science Engineer & Developer Portfolio</title>
-  <meta name="description" content="Personal portfolio of Aswal S Ajay — 2nd Year B.Tech CSE Student at MITS Kochi. Builder of apps, browser extensions, and tools accelerated by AI-assisted development.">
-  <meta name="keywords" content="Aswal S Ajay, Portfolio, Computer Science, MITS Kochi, Python, C, Verilog HDL, Linux, Antigravity, Frontend Development">
+  <title>Aswal S Ajay | Developer & CS Student</title>
+  <meta name="description" content="Personal portfolio of Aswal S Ajay — 2nd Year B.Tech Computer Science student at MITS Kochi. Builder of web applications, browser extensions, and systems projects.">
+  <meta name="keywords" content="Aswal S Ajay, Portfolio, Computer Science, MITS Kochi, Python, C, Verilog HDL, Linux, Web Development">
   <meta name="author" content="Aswal S Ajay">
   
-  <!-- Favicon / Meta -->
+  <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <meta property="og:title" content="Aswal S Ajay | Developer Portfolio">
-  <meta property="og:description" content="Building small-scale apps, browser extensions, and tools — accelerated with AI-assisted development.">
+  <meta property="og:description" content="Computer Science student at MITS Kochi building web tools, browser extensions, and systems projects.">
   <meta property="og:type" content="website">
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Ambient background glow elements -->
-  <div class="glow-sphere sphere-top" aria-hidden="true"></div>
-  <div class="glow-sphere sphere-mid" aria-hidden="true"></div>
-  <div class="glow-sphere sphere-bottom" aria-hidden="true"></div>
 
-  <!-- Header / Navigation -->
+  <!-- Navigation -->
   <header class="site-header" id="site-header">
     <div class="container header-container">
       <a href="#hero" class="brand-logo" aria-label="Aswal S Ajay Home">
         <span class="brand-monogram">AA</span>
-        <span class="brand-name">Aswal S Ajay<span class="dot-accent">.</span></span>
+        <span class="brand-name">Aswal S Ajay</span>
       </a>
 
       <!-- Desktop Nav -->
@@ -48,7 +44,7 @@
       </nav>
 
       <div class="header-actions">
-        <a href="#contact" class="btn btn-outline btn-sm">Get In Touch</a>
+        <a href="#contact" class="btn btn-sm btn-outline">Get In Touch</a>
         <!-- Mobile Menu Toggle Button -->
         <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
           <span class="toggle-bar"></span>
@@ -68,7 +64,7 @@
         <li><a href="#contact" class="mobile-nav-link">Contact</a></li>
       </ul>
       <div class="mobile-nav-footer">
-        <a href="#contact" class="btn btn-primary btn-block">Reach Out</a>
+        <a href="#contact" class="btn btn-primary btn-block">Get In Touch</a>
       </div>
     </div>
   </header>
@@ -78,150 +74,138 @@
     <section class="section hero-section" id="hero">
       <div class="container hero-container">
         <div class="hero-content">
-          <div class="status-badge">
-            <span class="status-indicator"></span>
-            <span>2nd Year CSE &bull; Open to Opportunities</span>
+          <div class="hero-status">
+            <span class="status-dot"></span>
+            <span>2nd Year CSE &bull; MITS Kochi</span>
           </div>
 
           <h1 class="hero-title">
-            Hi, I'm <span class="gradient-text">Aswal S Ajay</span>
+            Hi, I'm <span class="hero-highlight">Aswal S Ajay</span>
           </h1>
           
-          <div class="hero-subtitle">
-            <span class="subtitle-text">B.Tech Computer Science & Engineering Student</span>
-          </div>
+          <p class="hero-subtitle">
+            Computer Science Undergraduate &amp; Software Developer
+          </p>
 
           <p class="hero-tagline">
-            Building small-scale apps, browser extensions, and tools — accelerated with AI-assisted development.
+            I build practical web applications, browser extensions, and explore low-level systems programming in C &amp; Linux.
           </p>
 
           <div class="hero-cta-group">
-            <a href="https://github.com/aswalajay200621-source" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="hero-github-btn">
-              <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <a href="#projects" class="btn btn-primary">
+              View Projects
+              <svg class="icon-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 17L17 7M17 7H7M17 7V17" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+
+            <a href="https://github.com/aswalajay200621-source" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
               </svg>
-              GitHub Profile
+              GitHub
             </a>
 
-            <a href="https://linkedin.com/in/aswal-ajay-998560389" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="hero-linkedin-btn">
-              <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <a href="https://linkedin.com/in/aswal-ajay-998560389" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                 <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
               </svg>
-              LinkedIn Profile
-            </a>
-
-            <a href="#projects" class="btn btn-glass">
-              Explore Projects
-              <svg class="icon-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <polyline points="19 12 12 19 5 12"></polyline>
-              </svg>
+              LinkedIn
             </a>
           </div>
 
-          <div class="hero-highlights">
-            <div class="highlight-item">
-              <span class="highlight-num">8+</span>
-              <span class="highlight-label">Projects Built</span>
+          <!-- Quick Stat Counters -->
+          <div class="hero-metrics">
+            <div class="metric-item">
+              <span class="metric-val">8+</span>
+              <span class="metric-label">Repositories</span>
             </div>
-            <div class="highlight-divider"></div>
-            <div class="highlight-item">
-              <span class="highlight-num">MITS</span>
-              <span class="highlight-label">Kochi, Kerala</span>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-val">B.Tech</span>
+              <span class="metric-label">CSE (2023–2027)</span>
             </div>
-            <div class="highlight-divider"></div>
-            <div class="highlight-item">
-              <span class="highlight-num">AI-Driven</span>
-              <span class="highlight-label">Modern Dev Workflows</span>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-val">Kochi</span>
+              <span class="metric-label">Kerala, India</span>
             </div>
           </div>
         </div>
 
-        <div class="hero-media">
-          <div class="photo-card-wrapper">
-            <div class="photo-glow-backdrop"></div>
-            <div class="photo-card photo-card-hero">
-              <img src="assets/aswal-hero.jpg" alt="Aswal S Ajay holding a camera" class="profile-photo" id="hero-profile-photo" loading="eager">
-              <div class="photo-overlay">
-                <span class="photo-caption-title">Aswal S Ajay</span>
-                <span class="photo-caption-sub">Engineer &bull; Tech Explorer</span>
-              </div>
-            </div>
-            <div class="floating-badge badge-top-right">
-              <span class="badge-icon">⚡</span>
-              <span>Fast Prototyping</span>
-            </div>
-            <div class="floating-badge badge-bottom-left">
-              <span class="badge-icon">📍</span>
-              <span>Kochi, Kerala</span>
-            </div>
+        <div class="hero-photo-wrapper">
+          <div class="photo-frame">
+            <img src="assets/aswal-hero.jpg" alt="Aswal S Ajay" class="hero-photo" loading="eager">
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ABOUT ME SECTION -->
+    <!-- ABOUT SECTION -->
     <section class="section about-section" id="about">
       <div class="container">
         <div class="section-header">
-          <span class="section-badge">Get To Know Me</span>
+          <span class="section-kicker">Background</span>
           <h2 class="section-title">About Me</h2>
-          <p class="section-subtitle">Bridging low-level systems engineering with modern frontend agility.</p>
         </div>
 
         <div class="about-grid">
-          <div class="about-media">
-            <div class="photo-frame">
-              <div class="photo-frame-border"></div>
-              <img src="assets/aswal-about.png" alt="Aswal S Ajay smiling portrait" class="about-photo" id="about-profile-photo" loading="lazy">
-              <div class="about-tag-badge">
-                <span class="dot-online"></span>
-                <span>Active Builder</span>
-              </div>
+          <div class="about-photo-col">
+            <div class="photo-frame secondary-photo-frame">
+              <img src="assets/aswal-about.png" alt="Aswal S Ajay portrait" class="about-photo" loading="lazy">
             </div>
           </div>
 
-          <div class="about-content">
-            <h3 class="about-heading">
-              Computer Science Undergraduate & Passionate Developer
-            </h3>
-            
-            <div class="about-bio">
-              <p>
-                I am a second-year Computer Science & Engineering undergraduate at <strong>MITS Kochi</strong>, driven by a deep fascination for building pragmatic software solutions that solve real-world problems. My technical foundation spans across <strong>Python</strong>, multi-file <strong>C programming</strong> in Linux/Ubuntu environments, and digital logic with <strong>Verilog HDL</strong>, giving me a solid grasp of systems from low-level execution up to high-level architecture.
-              </p>
-              <p>
-                With an ever-expanding focus on modern <strong>frontend development</strong> and deployment, I enjoy turning ideas into responsive, intuitive browser extensions and web applications. What sets my development cycle apart is my disciplined embrace of AI-assisted engineering tools like <strong>Antigravity</strong>, <strong>Replit</strong>, and <strong>Google Stitch</strong> — using precise prompt engineering and automated workflows to accelerate complex software delivery without compromising on engineering rigor.
-              </p>
-            </div>
+          <div class="about-info-col">
+            <!-- Punchy 2-sentence intro instead of huge paragraph -->
+            <p class="about-lead">
+              I am a Computer Science undergraduate at <strong>Muthoot Institute of Technology &amp; Science (MITS)</strong>, Kochi. I enjoy building software across the stack — from browser extensions and web tools to low-level systems programming in C and Linux.
+            </p>
 
-            <!-- Education timeline / details -->
-            <div class="education-cards">
-              <div class="edu-card">
-                <div class="edu-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-                  </svg>
-                </div>
-                <div class="edu-details">
-                  <h4>B.Tech in Computer Science and Engineering</h4>
-                  <span class="edu-institution">Muthoot Institute of Technology & Science (MITS) — Kochi, Kerala</span>
-                  <span class="edu-year">2nd Year Undergraduate &bull; Present</span>
+            <!-- Scannable bullet list -->
+            <div class="about-highlights-list">
+              <div class="highlight-point">
+                <div class="point-icon">⚡</div>
+                <div class="point-text">
+                  <strong>Systems &amp; Logic:</strong> Multi-file C programming, Linux terminal environments, and digital logic modeling with Verilog HDL.
                 </div>
               </div>
-
-              <div class="edu-card">
-                <div class="edu-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                  </svg>
+              <div class="highlight-point">
+                <div class="point-icon">🛠️</div>
+                <div class="point-text">
+                  <strong>Web &amp; Tools:</strong> Building targeted browser extensions, interactive JavaScript apps, and database-backed platforms.
                 </div>
-                <div class="edu-details">
-                  <h4>Higher Secondary & Schooling</h4>
-                  <span class="edu-institution">United Indian School — Kuwait</span>
-                  <span class="edu-year">Up to Grade 12</span>
+              </div>
+              <div class="highlight-point">
+                <div class="point-icon">🎯</div>
+                <div class="point-text">
+                  <strong>Pragmatic Mindset:</strong> Rapid prototyping, modular architecture, and solving practical day-to-day computing problems.
+                </div>
+              </div>
+            </div>
+
+            <!-- Education Timeline -->
+            <div class="education-block">
+              <h3 class="subsection-title">Education</h3>
+              <div class="edu-items">
+                <div class="edu-entry">
+                  <div class="edu-meta">
+                    <span class="edu-year">2023 &ndash; Present</span>
+                  </div>
+                  <div class="edu-body">
+                    <h4 class="edu-degree">B.Tech in Computer Science &amp; Engineering</h4>
+                    <span class="edu-school">Muthoot Institute of Technology &amp; Science (MITS) &bull; Kochi, Kerala</span>
+                  </div>
+                </div>
+
+                <div class="edu-entry">
+                  <div class="edu-meta">
+                    <span class="edu-year">Completed 2023</span>
+                  </div>
+                  <div class="edu-body">
+                    <h4 class="edu-degree">Higher Secondary Education (CBSE)</h4>
+                    <span class="edu-school">United Indian School &bull; Kuwait</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -234,146 +218,47 @@
     <section class="section skills-section" id="skills">
       <div class="container">
         <div class="section-header">
-          <span class="section-badge">Capabilities</span>
-          <h2 class="section-title">Technical Skills & Tools</h2>
-          <p class="section-subtitle">Core competencies across programming, systems, databases, and AI development environments.</p>
+          <span class="section-kicker">Capabilities</span>
+          <h2 class="section-title">Technical Skills</h2>
         </div>
 
-        <!-- Featured badges cloud as requested -->
-        <div class="skills-badges-container">
-          <div class="skills-badges-header">
-            <span>Core Toolset & Technologies</span>
-          </div>
-          <div class="skills-badge-list" id="skills-badge-list">
-            <span class="skill-badge skill-featured">
-              <span class="badge-dot"></span>
-              Python
-            </span>
-            <span class="skill-badge skill-featured">
-              <span class="badge-dot"></span>
-              C
-            </span>
-            <span class="skill-badge skill-featured">
-              <span class="badge-dot"></span>
-              Verilog HDL
-            </span>
-            <span class="skill-badge skill-featured">
-              <span class="badge-dot"></span>
-              PostgreSQL
-            </span>
-            <span class="skill-badge skill-featured">
-              <span class="badge-dot"></span>
-              Linux/Ubuntu
-            </span>
-            <span class="skill-badge skill-featured">
-              <span class="badge-dot"></span>
-              Frontend Development
-            </span>
-            <span class="skill-badge skill-accent">
-              <span class="badge-dot"></span>
-              Prompt Engineering
-            </span>
-            <span class="skill-badge skill-accent">
-              <span class="badge-dot"></span>
-              Antigravity
-            </span>
-            <span class="skill-badge skill-accent">
-              <span class="badge-dot"></span>
-              Replit
-            </span>
-            <span class="skill-badge skill-accent">
-              <span class="badge-dot"></span>
-              Google Stitch
-            </span>
-          </div>
-        </div>
-
-        <!-- Categorized Detail Cards -->
-        <div class="skills-category-grid">
-          <!-- Card 1: AI-Assisted Dev -->
-          <div class="skill-cat-card">
-            <div class="cat-header">
-              <div class="cat-icon cat-icon-ai">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
-                  <path d="M12 6v6l4 2"></path>
-                </svg>
-              </div>
-              <div>
-                <h3>AI-Assisted Dev</h3>
-                <p>Accelerating complex pipelines</p>
-              </div>
+        <div class="skills-clean-grid">
+          <!-- Column 1: Programming Languages -->
+          <div class="skill-group">
+            <h3 class="skill-group-title">Languages</h3>
+            <div class="skill-chips">
+              <span class="skill-chip">C</span>
+              <span class="skill-chip">Python</span>
+              <span class="skill-chip">JavaScript</span>
+              <span class="skill-chip">Verilog HDL</span>
+              <span class="skill-chip">SQL</span>
+              <span class="skill-chip">HTML5 / CSS3</span>
             </div>
-            <ul class="cat-items">
-              <li><strong>Antigravity:</strong> Multi-agent autonomous coding & workflow orchestration</li>
-              <li><strong>Prompt Engineering:</strong> High-precision technical scoping and system prompting</li>
-              <li><strong>Replit:</strong> Cloud scaffolding, rapid testing, and collaborative prototyping</li>
-              <li><strong>Google Stitch:</strong> AI-augmented full-stack delivery</li>
-            </ul>
           </div>
 
-          <!-- Card 2: Languages -->
-          <div class="skill-cat-card">
-            <div class="cat-header">
-              <div class="cat-icon cat-icon-code">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="16 18 22 12 16 6"></polyline>
-                  <polyline points="8 6 2 12 8 18"></polyline>
-                </svg>
-              </div>
-              <div>
-                <h3>Programming Languages</h3>
-                <p>Systems, algorithms & logic</p>
-              </div>
+          <!-- Column 2: Systems & Tools -->
+          <div class="skill-group">
+            <h3 class="skill-group-title">Systems &amp; Environments</h3>
+            <div class="skill-chips">
+              <span class="skill-chip">Linux / Ubuntu</span>
+              <span class="skill-chip">Git &amp; GitHub</span>
+              <span class="skill-chip">GCC Compiler</span>
+              <span class="skill-chip">Bash / Terminal</span>
+              <span class="skill-chip">PostgreSQL</span>
+              <span class="skill-chip">VS Code</span>
             </div>
-            <ul class="cat-items">
-              <li><strong>Python:</strong> Automation, CLI tooling, scripting, and backend logic</li>
-              <li><strong>C:</strong> Multi-file programming, pointers, algorithms, and Linux builds</li>
-              <li><strong>Verilog HDL:</strong> Digital logic modeling, RTL simulation, testbenches</li>
-            </ul>
           </div>
 
-          <!-- Card 3: Web & Frontend -->
-          <div class="skill-cat-card">
-            <div class="cat-header">
-              <div class="cat-icon cat-icon-web">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                  <line x1="8" y1="21" x2="16" y2="21"></line>
-                  <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-              </div>
-              <div>
-                <h3>Web & App Development</h3>
-                <p>Interfaces & browser software</p>
-              </div>
+          <!-- Column 3: Development Specialties -->
+          <div class="skill-group">
+            <h3 class="skill-group-title">Specialties &amp; Focus</h3>
+            <div class="skill-chips">
+              <span class="skill-chip">Browser Extensions (WebExtension API)</span>
+              <span class="skill-chip">DOM &amp; Frontend Dynamics</span>
+              <span class="skill-chip">RTL &amp; Logic Simulation</span>
+              <span class="skill-chip">Automation Scripting</span>
+              <span class="skill-chip">Database Schema Design</span>
             </div>
-            <ul class="cat-items">
-              <li><strong>Frontend Development:</strong> Semantic HTML5, CSS3, DOM manipulation, dynamic JS</li>
-              <li><strong>Browser Extensions:</strong> Chrome/Firefox extension APIs, content scripts, security blocking</li>
-              <li><strong>Application Deployment:</strong> Small-scale web hosting, static build management</li>
-            </ul>
-          </div>
-
-          <!-- Card 4: Databases & OS -->
-          <div class="skill-cat-card">
-            <div class="cat-header">
-              <div class="cat-icon cat-icon-db">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                </svg>
-              </div>
-              <div>
-                <h3>Databases & Operating Systems</h3>
-                <p>Data persistence & developer environments</p>
-              </div>
-            </div>
-            <ul class="cat-items">
-              <li><strong>PostgreSQL:</strong> Relational schema setup, table architecture, SQL querying</li>
-              <li><strong>Linux / Ubuntu:</strong> Shell scripting, terminal workflows, GCC compilation, Git CLI</li>
-            </ul>
           </div>
         </div>
       </div>
@@ -383,346 +268,285 @@
     <section class="section projects-section" id="projects">
       <div class="container">
         <div class="section-header">
-          <span class="section-badge">Portfolio</span>
+          <span class="section-kicker">Portfolio</span>
           <h2 class="section-title">Featured Projects</h2>
-          <p class="section-subtitle">Real-world applications, browser extensions, hackathon solutions, and tools.</p>
         </div>
 
         <div class="projects-grid">
           <!-- Project 1: UI Extractor Extension -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill">Browser Extension</div>
-              <a href="https://github.com/aswalajay200621-source/ui-extractor-ai" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View UI Extractor Extension source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">Browser Extension</span>
+              <a href="https://github.com/aswalajay200621-source/ui-extractor-ai" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View UI Extractor on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
                 </svg>
               </a>
             </div>
             <h3 class="project-title">UI Extractor Extension</h3>
-            <p class="project-description">
-              Intelligent browser extension engineered for developers to swiftly inspect, capture, and extract UI elements and design tokens from any webpage into modular, reusable components.
+            <p class="project-summary">
+              Chrome/browser extension that inspects and extracts live UI components, styles, and layout structures directly from any web page.
             </p>
-            <div class="project-tech-list">
+            <div class="project-tags">
               <span>JavaScript</span>
               <span>WebExtension API</span>
               <span>CSS Extraction</span>
-              <span>DOM</span>
             </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/ui-extractor-ai" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/ui-extractor-ai" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
               </a>
             </div>
-          </div>
+          </article>
 
-          <!-- Project 2: COMPASS Skill Development Platform -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill pill-hackathon">Hackathon Project</div>
-              <a href="https://github.com/aswalajay200621-source/COMPASS-skill-platform" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View COMPASS source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-              </a>
-            </div>
-            <h3 class="project-title">COMPASS — Skill Development Platform</h3>
-            <p class="project-description">
-              A comprehensive student skill development platform built during a competitive hackathon. Features curated learning roadmaps, prerequisite tracks, and opportunity discovery.
-            </p>
-            <div class="project-tech-list">
-              <span>Web Platform</span>
-              <span>JavaScript</span>
-              <span>PostgreSQL</span>
-              <span>CSS3</span>
-            </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/COMPASS-skill-platform" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Project 2: COMPASS -->
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">Hackathon Project</span>
+              <a href="https://github.com/aswalajay200621-source/COMPASS-skill-platform" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View COMPASS on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
                 </svg>
               </a>
             </div>
-          </div>
+            <h3 class="project-title">COMPASS — Skill Platform</h3>
+            <p class="project-summary">
+              A student career roadmap platform featuring structured tech roadmaps, prerequisite guides, and skill development tracking.
+            </p>
+            <div class="project-tags">
+              <span>Web Platform</span>
+              <span>PostgreSQL</span>
+              <span>JavaScript</span>
+            </div>
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/COMPASS-skill-platform" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
+              </a>
+            </div>
+          </article>
 
           <!-- Project 3: Cursor Chaos -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill">Interactive Experiment</div>
-              <a href="https://github.com/aswalajay200621-source/CursorChaos" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View Cursor Chaos source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">Interactive Web</span>
+              <a href="https://github.com/aswalajay200621-source/CursorChaos" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View Cursor Chaos on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
                 </svg>
               </a>
             </div>
             <h3 class="project-title">Cursor Chaos</h3>
-            <p class="project-description">
-              An experimental, entertaining web project exploring unconventional pointer physics, particle trails, and interactive canvas feedback loops to push UI micro-interaction boundaries.
+            <p class="project-summary">
+              Interactive physics simulation on HTML5 Canvas featuring fluid particle dynamics, trails, and unconventional pointer physics.
             </p>
-            <div class="project-tech-list">
+            <div class="project-tags">
               <span>JavaScript</span>
               <span>HTML5 Canvas</span>
               <span>Physics Dynamics</span>
             </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/CursorChaos" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/CursorChaos" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
+              </a>
+            </div>
+          </article>
+
+          <!-- Project 4: LinPatrol -->
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">Cybersecurity</span>
+              <a href="https://github.com/aswalajay200621-source/linpatrol" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View LinPatrol on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <!-- Project 4: LinPatrol -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill pill-security">Cybersecurity</div>
-              <a href="https://github.com/aswalajay200621-source/linpatrol" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View LinPatrol source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
               </a>
             </div>
             <h3 class="project-title">LinPatrol</h3>
-            <p class="project-description">
-              Malicious site detector and blocker browser extension designed to protect users against phishing threats, deceptive hyperlinks, and untrusted domains via real-time inspection.
+            <p class="project-summary">
+              Browser security tool detecting suspicious hyperlinks, phishing domains, and untrusted URLs through heuristic pattern checks.
             </p>
-            <div class="project-tech-list">
+            <div class="project-tags">
               <span>Security</span>
-              <span>WebExtension API</span>
+              <span>WebExtension</span>
               <span>URL Heuristics</span>
-              <span>JavaScript</span>
             </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/linpatrol" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/linpatrol" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
+              </a>
+            </div>
+          </article>
+
+          <!-- Project 5: Geosilent -->
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">Mobile Utility</span>
+              <a href="https://github.com/aswalajay200621-source/Geosilent" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View Geosilent on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <!-- Project 5: Geosilent -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill">Location Utility</div>
-              <a href="https://github.com/aswalajay200621-source/Geosilent" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View Geosilent source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
               </a>
             </div>
             <h3 class="project-title">Geosilent</h3>
-            <p class="project-description">
-              Location-based phone silence controller app that dynamically toggles device ringer profiles based on geofenced zones such as classrooms, libraries, or prayer halls.
+            <p class="project-summary">
+              Location-aware mobile utility that automatically switches device sound profiles based on geofenced quiet zones like classrooms.
             </p>
-            <div class="project-tech-list">
+            <div class="project-tags">
+              <span>Python</span>
               <span>Geofencing</span>
-              <span>Mobile Automation</span>
-              <span>Python / Android</span>
+              <span>Automation</span>
             </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/Geosilent" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/Geosilent" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
+              </a>
+            </div>
+          </article>
+
+          <!-- Project 6: StudyMate -->
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">Document Parser</span>
+              <a href="https://github.com/aswalajay200621-source/studymate" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View StudyMate on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <!-- Project 6: StudyMate -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill">Document Processing</div>
-              <a href="https://github.com/aswalajay200621-source/studymate" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View StudyMate source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
               </a>
             </div>
             <h3 class="project-title">StudyMate</h3>
-            <p class="project-description">
-              Application that parses PDFs and documents into clean, responsive HTML pages with preserved structure, making study notes and slides readable and searchable on all devices.
+            <p class="project-summary">
+              Python utility converting PDF documents and lecture slides into clean, responsive HTML pages with preserved document structure.
             </p>
-            <div class="project-tech-list">
+            <div class="project-tags">
               <span>Python</span>
               <span>PDF Extraction</span>
               <span>HTML5</span>
-              <span>Styling</span>
             </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/studymate" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/studymate" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
+              </a>
+            </div>
+          </article>
+
+          <!-- Project 7: Friday Assistant -->
+          <article class="project-card">
+            <div class="project-card-header">
+              <span class="project-category">CLI Tool</span>
+              <a href="https://github.com/aswalajay200621-source/friday-assistant" target="_blank" rel="noopener noreferrer" class="project-external-link" aria-label="View Friday Assistant on GitHub">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <!-- Project 7: Friday Assistant -->
-          <div class="project-card">
-            <div class="project-top">
-              <div class="project-tag-pill">CLI / Assistant</div>
-              <a href="https://github.com/aswalajay200621-source/friday-assistant" target="_blank" rel="noopener noreferrer" class="project-link-icon" aria-label="View Friday Assistant source on GitHub">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
               </a>
             </div>
             <h3 class="project-title">Friday Assistant</h3>
-            <p class="project-description">
-              Python-based personal assistant CLI tool enabling rapid developer automation, automated system routines, voice/text command parsing, and daily productivity enhancements.
+            <p class="project-summary">
+              Terminal-based developer assistant CLI that automates routine developer workflows, command shortcuts, and system checks.
             </p>
-            <div class="project-tech-list">
+            <div class="project-tags">
               <span>Python</span>
               <span>CLI</span>
               <span>Automation</span>
-              <span>OS Subsystems</span>
             </div>
-            <div class="project-footer">
-              <a href="https://github.com/aswalajay200621-source/friday-assistant" target="_blank" rel="noopener noreferrer" class="project-cta-link">
-                View on GitHub
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
+            <div class="project-card-footer">
+              <a href="https://github.com/aswalajay200621-source/friday-assistant" target="_blank" rel="noopener noreferrer" class="project-repo-link">
+                View Repository &rarr;
               </a>
             </div>
-          </div>
+          </article>
 
           <!-- Project 8: MediClaim (Private) -->
-          <div class="project-card project-card-private">
-            <div class="project-top">
-              <div class="project-tag-pill pill-private">
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Private Repository
-              </div>
-              <span class="private-badge-tooltip" title="Private repository for college security reasons">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-              </span>
-            </div>
-            <h3 class="project-title">MediClaim</h3>
-            <p class="project-description">
-              A comprehensive medical insurance planner built for college administration. Computes coverage, organizes health policy portfolios, and manages confidential claims handling.
-            </p>
-            <div class="project-tech-list">
-              <span>Database Architecture</span>
-              <span>PostgreSQL</span>
-              <span>Full-Stack</span>
-              <span>College System</span>
-            </div>
-            <div class="project-footer">
-              <span class="private-notice">
+          <article class="project-card project-card-private">
+            <div class="project-card-header">
+              <span class="project-category">Full-Stack Database</span>
+              <span class="private-badge" title="Confidential college project">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                Private repository (confidential college data)
+                Private
               </span>
             </div>
-          </div>
+            <h3 class="project-title">MediClaim</h3>
+            <p class="project-summary">
+              Campus medical policy and claims management system with relational database schemas, claims records, and user access roles.
+            </p>
+            <div class="project-tags">
+              <span>PostgreSQL</span>
+              <span>Schema Architecture</span>
+              <span>Full-Stack</span>
+            </div>
+            <div class="project-card-footer">
+              <span class="private-note">Internal College Project</span>
+            </div>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- CONTACT / FOOTER SECTION -->
+    <!-- CONTACT SECTION -->
     <section class="section contact-section" id="contact">
       <div class="container">
-        <div class="contact-box">
+        <div class="contact-card-box">
           <div class="contact-header">
-            <span class="section-badge">Get In Touch</span>
-            <h2 class="section-title">Let's Connect & Build Together</h2>
-            <p class="contact-sub">
-              Interested in collaborating, discussing projects, or exploring internship opportunities? Reach out anytime!
+            <span class="section-kicker">Get In Touch</span>
+            <h2 class="section-title">Let's Connect</h2>
+            <p class="contact-intro">
+              Whether you want to discuss a project, collaboration, or internship opportunities &mdash; feel free to reach out.
             </p>
           </div>
 
-          <div class="contact-methods">
-            <!-- Phone card -->
-            <div class="contact-card">
-              <div class="contact-card-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                </svg>
+          <div class="contact-links-grid">
+            <!-- Phone / WhatsApp -->
+            <div class="contact-channel">
+              <div class="channel-info">
+                <span class="channel-label">Phone &amp; WhatsApp</span>
+                <span class="channel-value">+91 80898 48208</span>
               </div>
-              <div class="contact-card-info">
-                <span class="contact-label">Phone & WhatsApp</span>
-                <span class="contact-value" id="phone-display">+91 80898 48208</span>
-              </div>
-              <div class="contact-card-actions">
-                <a href="tel:+918089848208" class="btn btn-sm btn-outline" title="Call directly">Call</a>
-                <button class="btn btn-sm btn-secondary copy-btn" id="copy-phone-btn" data-copy="+918089848208" title="Copy phone number">
-                  <svg class="copy-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
+              <div class="channel-actions">
+                <a href="tel:+918089848208" class="btn btn-sm btn-outline">Call</a>
+                <button class="btn btn-sm btn-secondary copy-btn" id="copy-phone-btn" data-copy="+918089848208" title="Copy to clipboard">
                   <span class="copy-text">Copy</span>
                 </button>
               </div>
             </div>
 
-            <!-- GitHub card -->
-            <a href="https://github.com/aswalajay200621-source" target="_blank" rel="noopener noreferrer" class="contact-card contact-card-link">
-              <div class="contact-card-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
+            <!-- GitHub -->
+            <a href="https://github.com/aswalajay200621-source" target="_blank" rel="noopener noreferrer" class="contact-channel channel-link">
+              <div class="channel-info">
+                <span class="channel-label">GitHub</span>
+                <span class="channel-value">github.com/aswalajay200621-source</span>
               </div>
-              <div class="contact-card-info">
-                <span class="contact-label">Code Repositories</span>
-                <span class="contact-value">github.com/aswalajay200621-source</span>
-              </div>
-              <div class="contact-card-arrow">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="7" y1="17" x2="17" y2="7"></line>
-                  <polyline points="7 7 17 7 17 17"></polyline>
+              <div class="channel-arrow">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 17L17 7M17 7H7M17 7V17" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
             </a>
 
-            <!-- LinkedIn card -->
-            <a href="https://linkedin.com/in/aswal-ajay-998560389" target="_blank" rel="noopener noreferrer" class="contact-card contact-card-link">
-              <div class="contact-card-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                </svg>
+            <!-- LinkedIn -->
+            <a href="https://linkedin.com/in/aswal-ajay-998560389" target="_blank" rel="noopener noreferrer" class="contact-channel channel-link">
+              <div class="channel-info">
+                <span class="channel-label">LinkedIn</span>
+                <span class="channel-value">linkedin.com/in/aswal-ajay-998560389</span>
               </div>
-              <div class="contact-card-info">
-                <span class="contact-label">Professional Network</span>
-                <span class="contact-value">linkedin.com/in/aswal-ajay-998560389</span>
-              </div>
-              <div class="contact-card-arrow">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="7" y1="17" x2="17" y2="7"></line>
-                  <polyline points="7 7 17 7 17 17"></polyline>
+              <div class="channel-arrow">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 17L17 7M17 7H7M17 7V17" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
             </a>
@@ -735,26 +559,12 @@
   <!-- FOOTER -->
   <footer class="site-footer">
     <div class="container footer-container">
-      <div class="footer-brand">
-        <span class="footer-logo">Aswal S Ajay</span>
-        <p class="footer-tagline">B.Tech Computer Science &bull; MITS Kochi</p>
+      <div class="footer-left">
+        <span class="footer-name">Aswal S Ajay</span>
+        <span class="footer-sub">&bull; B.Tech CSE, MITS Kochi</span>
       </div>
-
-      <div class="footer-socials">
-        <a href="https://github.com/aswalajay200621-source" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub Profile">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-        </a>
-        <a href="https://linkedin.com/in/aswal-ajay-998560389" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="LinkedIn Profile">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-          </svg>
-        </a>
-      </div>
-
-      <div class="footer-copy">
-        <p>&copy; 2026 Aswal S Ajay. All rights reserved.</p>
+      <div class="footer-right">
+        <p>&copy; 2026 Aswal S Ajay</p>
       </div>
     </div>
   </footer>
@@ -762,12 +572,12 @@
   <!-- Toast Notification Container -->
   <div class="toast-notification" id="toast" role="alert" aria-live="polite">
     <span class="toast-icon">✓</span>
-    <span class="toast-message" id="toast-message">Phone number copied to clipboard!</span>
+    <span class="toast-message" id="toast-message">Copied to clipboard!</span>
   </div>
 
   <!-- Scroll to Top Button -->
   <button class="back-to-top" id="back-to-top" aria-label="Back to top of page">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
       <polyline points="18 15 12 9 6 15"></polyline>
     </svg>
   </button>

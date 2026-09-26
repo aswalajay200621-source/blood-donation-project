@@ -1,10 +1,11 @@
 /**
  * Aswal S Ajay — Personal Portfolio Interactions
- * Handles navigation, mobile drawer, active states, clipboard copy, and animations.
+ * Minimal, lightweight vanilla JavaScript for header states, mobile drawer,
+ * active link tracking, and clipboard phone copy.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Elements
+  // DOM Elements
   const header = document.getElementById('site-header');
   const mobileToggle = document.getElementById('mobile-toggle');
   const mobileNav = document.getElementById('mobile-nav');
@@ -18,29 +19,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let toastTimeout = null;
 
-  // --- 1. Sticky Header Background on Scroll ---
+  // --- 1. Sticky Header & Back to Top on Scroll ---
   const handleScroll = () => {
     const scrollY = window.scrollY || window.pageYOffset;
     
-    // Header shadow & background
-    if (scrollY > 30) {
-      header.classList.add('scrolled');
-    } else {
-      header.classList.remove('scrolled');
+    if (header) {
+      if (scrollY > 20) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
     }
 
-    // Back to top button visibility
-    if (scrollY > 350) {
-      backToTopBtn.classList.add('show');
-    } else {
-      backToTopBtn.classList.remove('show');
+    if (backToTopBtn) {
+      if (scrollY > 300) {
+        backToTopBtn.classList.add('show');
+      } else {
+        backToTopBtn.classList.remove('show');
+      }
     }
   };
 
   window.addEventListener('scroll', handleScroll, { passive: true });
   handleScroll();
 
-  // --- 2. Back to Top Action ---
+  // --- 2. Back to Top Click ---
   if (backToTopBtn) {
     backToTopBtn.addEventListener('click', () => {
       window.scrollTo({
@@ -65,21 +68,18 @@ document.addEventListener('DOMContentLoaded', () => {
       toggleMenu();
     });
 
-    // Close on link click
     mobileLinks.forEach(link => {
       link.addEventListener('click', () => {
         toggleMenu(true);
       });
     });
 
-    // Close on click outside
     document.addEventListener('click', (e) => {
       if (!mobileNav.contains(e.target) && !mobileToggle.contains(e.target) && mobileNav.classList.contains('open')) {
         toggleMenu(true);
       }
     });
 
-    // Close on ESC key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && mobileNav.classList.contains('open')) {
         toggleMenu(true);
@@ -87,42 +87,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- 4. Active Navigation Observer ---
-  const observerOptions = {
-    root: null,
-    rootMargin: '-20% 0px -60% 0px',
-    threshold: 0
-  };
+  // --- 4. Active Navigation State ---
+  if ('IntersectionObserver' in window && sections.length > 0) {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-25% 0px -55% 0px',
+      threshold: 0
+    };
 
-  const sectionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const activeId = entry.target.getAttribute('id');
-        
-        // Update desktop links
-        desktopLinks.forEach(link => {
-          if (link.getAttribute('href') === `#${activeId}`) {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
-        });
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const activeId = entry.target.getAttribute('id');
+          
+          desktopLinks.forEach(link => {
+            if (link.getAttribute('href') === `#${activeId}`) {
+              link.classList.add('active');
+            } else {
+              link.classList.remove('active');
+            }
+          });
 
-        // Update mobile links
-        mobileLinks.forEach(link => {
-          if (link.getAttribute('href') === `#${activeId}`) {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
-        });
-      }
-    });
-  }, observerOptions);
+          mobileLinks.forEach(link => {
+            if (link.getAttribute('href') === `#${activeId}`) {
+              link.classList.add('active');
+            } else {
+              link.classList.remove('active');
+            }
+          });
+        }
+      });
+    }, observerOptions);
 
-  sections.forEach(section => sectionObserver.observe(section));
+    sections.forEach(section => sectionObserver.observe(section));
+  }
 
-  // --- 5. Copy Phone to Clipboard with Toast ---
+  // --- 5. Copy Phone Number to Clipboard with Toast ---
   const showToast = (message) => {
     if (!toast) return;
     if (toastMessage) toastMessage.textContent = message;
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     toastTimeout = setTimeout(() => {
       toast.classList.remove('show');
-    }, 3000);
+    }, 2500);
   };
 
   if (copyPhoneBtn) {
@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(textToCopy);
         } else {
-          // Fallback for non-https/older browsers
           const textArea = document.createElement('textarea');
           textArea.value = textToCopy;
           textArea.style.position = 'fixed';
@@ -157,38 +156,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const copyTextSpan = copyPhoneBtn.querySelector('.copy-text');
         if (copyTextSpan) copyTextSpan.textContent = 'Copied!';
-        showToast('Phone number copied to clipboard: +91 80898 48208');
+        showToast('Phone number copied to clipboard');
 
         setTimeout(() => {
           if (copyTextSpan) copyTextSpan.textContent = 'Copy';
         }, 2000);
       } catch (err) {
         console.error('Failed to copy: ', err);
-        showToast('Could not copy automatically. Number: +91 80898 48208');
+        showToast('Number: +91 80898 48208');
       }
     });
   }
-
-  // --- 6. Smooth Card Entrance Animations ---
-  const revealElements = document.querySelectorAll('.project-card, .skill-cat-card, .edu-card');
-  revealElements.forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-  });
-
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.opacity = '1';
-        entry.target.style.transform = 'translateY(0)';
-        revealObserver.unobserve(entry.target);
-      }
-    });
-  }, {
-    rootMargin: '0px 0px -50px 0px',
-    threshold: 0.05
-  });
-
-  revealElements.forEach(el => revealObserver.observe(el));
 });

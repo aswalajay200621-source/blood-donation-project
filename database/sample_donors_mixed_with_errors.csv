@@ -1,0 +1,7 @@
+Full Name,Phone,Email,Blood Group,Last Donation Date,Gender,Age,Address,Camp Location
+Suresh Raina,9871122334,suresh.raina@example.com,O+,2026-05-12,Male,35,78 Stadium Road,Sports Complex Drive
+Invalid Phone Donor,98765,invalidphone@example.com,A+,2026-06-10,Male,29,Test Address,City Camp
+Invalid Email Donor,9811223399,not-an-email,B+,2026-05-15,Female,27,Test Address,City Camp
+Bad Blood Group,9833221100,goodemail@example.com,Z_POSITIVE,2026-04-20,Male,30,Test Address,City Camp
+Underage Donor,9844556677,underage@example.com,AB+,2026-05-01,Male,16,Test Address,City Camp
+Geeta Menon,9866778899,geeta.menon@example.com,A+,2026-04-05,Female,40,99 Palm Grove,Community Hall Camp

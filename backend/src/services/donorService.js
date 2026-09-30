@@ -1,16 +1,53 @@
+/**
+ * ============================================================================
+ * File: backend/src/services/donorService.js
+ * Purpose: Donor Domain Business Logic, Clinical Safety Rules & Registry Service
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Implements the core clinical and data integrity rules for the blood bank:
+ *
+ * Core Responsibilities & Business Rules:
+ * 1. Clinical Safety Rule (Mandatory 90-Day / 3-Month Window):
+ *    - Male/Female whole blood donors must wait at least 90 calendar days between donations.
+ *    - Automatically calculates `next_eligible_date = last_donation_date + 90 days`.
+ *    - Blocks any repeat donation attempted before `next_eligible_date` has arrived.
+ * 2. Data Validation & Formatting:
+ *    - Phone numbers must be exactly 10 digits (numeric only).
+ *    - Blood groups are restricted to standard ABO/Rh types (A+, A-, B+, B-, AB+, AB-, O+, O-).
+ *    - Automated email fallback generates `<phone>@donor.apexhospital.org` if blank.
+ * 3. Real-Time Duplicate Prevention:
+ *    - Checks phone and email uniqueness across the master registry.
+ * 4. Multi-Criteria Search & Filtering:
+ *    - Supports searching by name, phone, email, blood type, and eligibility status.
+ * 5. Dashboard Aggregations:
+ *    - Computes real-time blood stock counts, eligible donor counts, and recent activity logs.
+ * ============================================================================
+ */
+
 const validator = require('validator');
 const { query } = require('../db/db');
 
+/**
+ * Generates unique UUID-style identifier strings
+ */
 function genId() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'id_' + Math.random().toString(36).substring(2, 11);
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'id_' + Math.random().toString(36).substring(2, 11);
 }
 
+// Approved ABO/Rh blood groups recognized by clinical laboratory systems
 const VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const MANDATORY_GAP_DAYS = 90; // 3 months mandatory gap for donor safety
+
+// Mandatory clinical waiting gap between whole blood donations (90 calendar days = 3 months)
+const MANDATORY_GAP_DAYS = 90;
 
 class DonorService {
   /**
-   * Validate 10-digit Phone Number (Strict: exact 10 digits, numeric only)
+   * Validates that a phone number contains exactly 10 numeric digits
+   *
+   * @param {string} phone - Raw input phone number
+   * @returns {{ valid: boolean, sanitized?: string, error?: string }}
    */
   validatePhone(phone) {
     if (!phone) return { valid: false, error: 'Phone number is required' };
@@ -25,9 +62,14 @@ class DonorService {
   }
 
   /**
-   * Validate Email Address
+   * Validates email format; if omitted, generates automated clinical fallback address
+   *
+   * @param {string} email         - User input email address
+   * @param {string} fallbackPhone - Validated 10-digit phone for fallback domain generation
+   * @returns {{ valid: boolean, sanitized?: string, error?: string }}
    */
   validateEmail(email, fallbackPhone = '') {
+    // If no email provided, create hospital synthetic email fallback
     if (!email || !String(email).trim()) {
       if (fallbackPhone) {
         return { valid: true, sanitized: `${fallbackPhone}@donor.apexhospital.org` };
@@ -42,7 +84,10 @@ class DonorService {
   }
 
   /**
-   * Validate Blood Group
+   * Validates blood group against approved ABO/Rh types
+   *
+   * @param {string} bg - Blood group string
+   * @returns {{ valid: boolean, sanitized?: string, error?: string }}
    */
   validateBloodGroup(bg) {
     if (!bg) return { valid: false, error: 'Blood group is required' };
@@ -57,7 +102,10 @@ class DonorService {
   }
 
   /**
-   * Calculate Next Eligible Date (Last Donation Date + 90 Days / 3 Months)
+   * Computes next eligible donation date by adding 90 calendar days to last donation date
+   *
+   * @param {string} lastDonationDateStr - 'YYYY-MM-DD' formatted date string
+   * @returns {string} 'YYYY-MM-DD' formatted date string
    */
   calculateNextEligibleDate(lastDonationDateStr) {
     const lastDate = new Date(lastDonationDateStr);
@@ -70,7 +118,11 @@ class DonorService {
   }
 
   /**
-   * Compute Detailed Eligibility Status
+   * Computes real-time clinical eligibility status relative to today's date
+   *
+   * @param {string} lastDonationDateStr - 'YYYY-MM-DD'
+   * @param {string} nextEligibleDateStr - 'YYYY-MM-DD'
+   * @returns {{ isEligible: boolean, daysRemaining: number, statusText: string, statusBadge: string, nextEligibleDate: string }}
    */
   computeEligibility(lastDonationDateStr, nextEligibleDateStr) {
     const today = new Date();
@@ -83,6 +135,7 @@ class DonorService {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays <= 0) {
+      // 90 days have elapsed -> donor is currently eligible
       return {
         isEligible: true,
         daysRemaining: 0,
@@ -91,6 +144,7 @@ class DonorService {
         nextEligibleDate: nextDate.toISOString().split('T')[0]
       };
     } else if (diffDays <= 7) {
+      // Within 7 days of eligibility -> upcoming reminder window
       return {
         isEligible: false,
         daysRemaining: diffDays,
@@ -99,6 +153,7 @@ class DonorService {
         nextEligibleDate: nextDate.toISOString().split('T')[0]
       };
     } else {
+      // Under active mandatory waiting window -> donation strictly blocked
       return {
         isEligible: false,
         daysRemaining: diffDays,
@@ -110,7 +165,11 @@ class DonorService {
   }
 
   /**
-   * Lookup Donor by Phone or Email for Instant Auto-Suggest in Live Camp Mode
+   * Searches for duplicate donor records by phone number or email address
+   *
+   * @param {string} phone - 10-digit phone
+   * @param {string} email - Donor email address
+   * @returns {Promise<Object|null>} Donor record with eligibility metadata or null
    */
   async findDuplicate(phone, email) {
     const cleanPhone = phone ? String(phone).trim() : null;
@@ -132,7 +191,7 @@ class DonorService {
     const donor = res.rows[0];
     const eligibility = this.computeEligibility(donor.last_donation_date, donor.next_eligible_date);
     
-    // Fetch last 5 donations history
+    // Fetch last 5 historical donations
     const historyRes = await query(
       'SELECT * FROM donation_history WHERE donor_id = $1 ORDER BY donation_date DESC LIMIT 5',
       [donor.id]
@@ -146,10 +205,14 @@ class DonorService {
   }
 
   /**
-   * Register a Brand New Donor (Phase 2: Live Camp Entry)
+   * Registers a brand-new donor during live blood donation camp intake
+   *
+   * @param {Object} data      - Donor registration payload
+   * @param {Object} staffUser - Currently logged-in staff member context
+   * @returns {Promise<Object>} Created donor record
    */
   async createDonor(data, staffUser) {
-    // 1. Validate fields
+    // Step 1: Validate clinical inputs
     const phoneVal = this.validatePhone(data.phone);
     if (!phoneVal.valid) throw new Error(phoneVal.error);
 
@@ -166,7 +229,7 @@ class DonorService {
     const lastDonationDate = data.last_donation_date || new Date().toISOString().split('T')[0];
     const nextEligibleDate = this.calculateNextEligibleDate(lastDonationDate);
 
-    // 2. Check for duplicate phone or email
+    // Step 2: Prevent duplicate registrations
     const duplicate = await this.findDuplicate(phoneVal.sanitized, emailVal.sanitized);
     if (duplicate) {
       throw new Error(`A donor with this ${duplicate.phone === phoneVal.sanitized ? 'phone number' : 'email'} is already registered as "${duplicate.full_name}". Use the "Update Existing Donor" action.`);
@@ -181,6 +244,7 @@ class DonorService {
     const staffName = staffUser ? staffUser.name : 'Camp Staff';
     const staffId = staffUser ? staffUser.id : null;
 
+    // Step 3: Insert into master donors table
     await query(
       `INSERT INTO donors (
         id, full_name, phone, email, blood_group, gender, age, address,
@@ -194,7 +258,7 @@ class DonorService {
       ]
     );
 
-    // Insert history
+    // Step 4: Record initial entry in donation_history ledger
     await query(
       `INSERT INTO donation_history (
         id, donor_id, donation_date, camp_location, units_donated, source,
@@ -210,7 +274,12 @@ class DonorService {
   }
 
   /**
-   * Record a New Donation for an Existing Donor (Health-Safety Check Enforced)
+   * Records a subsequent donation for an existing donor with 90-day clinical safety check
+   *
+   * @param {string} donorId   - Donor identifier
+   * @param {Object} data      - New donation payload (date, camp location, notes)
+   * @param {Object} staffUser - Recording staff member
+   * @returns {Promise<Object>} Updated donor record
    */
   async recordNewDonation(donorId, data, staffUser) {
     const existingRes = await query('SELECT * FROM donors WHERE id = $1', [donorId]);
@@ -219,10 +288,9 @@ class DonorService {
     const donor = existingRes.rows[0];
     const newDonationDate = data.donation_date || new Date().toISOString().split('T')[0];
 
-    // Enforce 3-Month Safety Window
+    // Enforce 3-Month Safety Window (Clinical Block)
     const eligibility = this.computeEligibility(donor.last_donation_date, donor.next_eligible_date);
     
-    // Check if new donation date is before next eligible date
     const newDateObj = new Date(newDonationDate);
     const nextEligibleObj = new Date(donor.next_eligible_date);
 
@@ -237,7 +305,7 @@ class DonorService {
     const staffId = staffUser ? staffUser.id : null;
     const campLocation = data.camp_location || donor.camp_location || 'Hospital Blood Center';
 
-    // Update donor master record
+    // Update master donor record with new dates and increment counter
     await query(
       `UPDATE donors SET
         last_donation_date = $1,
@@ -249,7 +317,7 @@ class DonorService {
       [newDonationDate, newNextEligible, campLocation, donorId]
     );
 
-    // Insert history entry
+    // Insert historical donation ledger entry
     await query(
       `INSERT INTO donation_history (
         id, donor_id, donation_date, camp_location, units_donated, source,
@@ -265,7 +333,7 @@ class DonorService {
   }
 
   /**
-   * Update Donor Demographics
+   * Updates demographic and contact information of a donor
    */
   async updateDonor(donorId, data) {
     const existing = await query('SELECT * FROM donors WHERE id = $1', [donorId]);
@@ -284,7 +352,7 @@ class DonorService {
     const newPhone = phoneVal ? phoneVal.sanitized : current.phone;
     const newEmail = emailVal ? emailVal.sanitized : current.email;
 
-    // Check unique conflict
+    // Check unique conflict against other donors
     const conflict = await query(
       'SELECT id FROM donors WHERE (phone = $1 OR email = $2) AND id != $3',
       [newPhone, newEmail, donorId]
@@ -311,7 +379,7 @@ class DonorService {
   }
 
   /**
-   * Get Single Donor by ID
+   * Retrieves single donor record along with complete historical donation ledger
    */
   async getDonorById(donorId) {
     const res = await query('SELECT * FROM donors WHERE id = $1', [donorId]);
@@ -332,13 +400,14 @@ class DonorService {
   }
 
   /**
-   * Search & List Donors with Filters & Pagination
+   * Queries and filters the donor registry with text search and pagination
    */
   async listDonors({ search, bloodGroup, eligibilityStatus, page = 1, limit = 50 }) {
     let sql = 'SELECT * FROM donors WHERE 1=1';
     const params = [];
     let pIdx = 1;
 
+    // Search query matches name, phone, email, or camp
     if (search && search.trim()) {
       const q = `%${search.trim()}%`;
       sql += ` AND (full_name ILIKE $${pIdx} OR phone ILIKE $${pIdx} OR email ILIKE $${pIdx} OR camp_location ILIKE $${pIdx})`;
@@ -346,6 +415,7 @@ class DonorService {
       pIdx++;
     }
 
+    // Filter by specific blood group
     if (bloodGroup && bloodGroup !== 'ALL') {
       sql += ` AND blood_group = $${pIdx}`;
       params.push(bloodGroup.trim());
@@ -357,6 +427,7 @@ class DonorService {
     nextWeekDate.setDate(nextWeekDate.getDate() + 7);
     const nextWeekStr = nextWeekDate.toISOString().split('T')[0];
 
+    // Filter by clinical eligibility status
     if (eligibilityStatus === 'eligible') {
       sql += ` AND next_eligible_date <= $${pIdx}`;
       params.push(todayStr);
@@ -375,7 +446,7 @@ class DonorService {
 
     const res = await query(sql, params);
     
-    // Augment with computed eligibility
+    // Augment every row with computed eligibility attributes
     const enriched = res.rows.map((d) => ({
       ...d,
       eligibility: this.computeEligibility(d.last_donation_date, d.next_eligible_date)
@@ -388,7 +459,7 @@ class DonorService {
   }
 
   /**
-   * Dashboard Statistics
+   * Aggregates real-time metrics for Dashboard display
    */
   async getDashboardStats() {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -408,6 +479,7 @@ class DonorService {
       'AB+': 0, 'AB-': 0, 'O+': 0, 'O-': 0
     };
 
+    // Calculate donor eligibility breakdown
     donors.forEach((d) => {
       const el = this.computeEligibility(d.last_donation_date, d.next_eligible_date);
       if (el.isEligible) {
@@ -423,7 +495,7 @@ class DonorService {
       }
     });
 
-    // Recent Donations Feed
+    // Recent Donations Feed (latest 8 transactions)
     const recentHistory = await query(
       `SELECT dh.*, d.full_name, d.blood_group, d.phone
        FROM donation_history dh
@@ -432,7 +504,7 @@ class DonorService {
        LIMIT 8`
     );
 
-    // Notification Stats
+    // Notification delivery breakdown counts
     const notifStats = await query(
       `SELECT status, COUNT(*) as count FROM notification_logs GROUP BY status`
     );

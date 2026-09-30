@@ -1,3 +1,26 @@
+/**
+ * ============================================================================
+ * File: frontend/src/components/ExcelMigrationView.jsx
+ * Purpose: Spreadsheet Migration Engine (Phase 1 Legacy Data Import) View
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Implements the guided 3-step bulk data import workflow for legacy blood donor
+ * records from `.xlsx` or `.csv` spreadsheets:
+ *
+ * Workflow Steps:
+ * 1. Step 1 - File Upload & Template Download:
+ *    - Allows drag-and-drop or file picker selection of spreadsheets.
+ *    - Provides a direct link to download the standardized Excel template.
+ * 2. Step 2 - Parsing & Pre-Commit Validation:
+ *    - Sends binary file buffer to backend for schema mapping and dry-run validation.
+ *    - Renders tabbed preview tables comparing Valid Rows vs Rejected Rows with
+ *      row-specific error messages.
+ * 3. Step 3 - Database Commit:
+ *    - Persists validated rows to the database with duplicate merge option.
+ *    - Displays a comprehensive execution report (created, updated, rejected).
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import {
@@ -6,20 +29,29 @@ import {
 } from 'lucide-react';
 
 export default function ExcelMigrationView({ onNavigate }) {
+  // File upload and processing state
   const [selectedFile, setSelectedFile] = useState(null);
   const [parsing, setParsing] = useState(false);
   const [committing, setCommitting] = useState(false);
+  
+  // Validation results and import report state
   const [previewData, setPreviewData] = useState(null);
   const [importReport, setImportReport] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [updateExisting, setUpdateExisting] = useState(true);
   const [activePreviewTab, setActivePreviewTab] = useState('VALID');
 
+  /**
+   * File input change handler: records selected spreadsheet and resets stale preview reports
+   */
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) { setSelectedFile(file); setPreviewData(null); setImportReport(null); setErrorMsg(''); }
   };
 
+  /**
+   * Sends uploaded file to POST /api/excel/preview for header mapping & dry-run validation
+   */
   const handlePreviewUpload = async () => {
     if (!selectedFile) { setErrorMsg('Please select an .xlsx or .csv spreadsheet file.'); return; }
     try {
@@ -33,6 +65,9 @@ export default function ExcelMigrationView({ onNavigate }) {
     }
   };
 
+  /**
+   * Commits validated spreadsheet rows into the persistent donor database
+   */
   const handleCommitBatch = async () => {
     if (!previewData || !previewData.validRows || previewData.validRows.length === 0) {
       setErrorMsg('No valid rows available to commit.'); return;
@@ -48,6 +83,9 @@ export default function ExcelMigrationView({ onNavigate }) {
     }
   };
 
+  /**
+   * Resets migration state to allow importing another file
+   */
   const handleReset = () => { setSelectedFile(null); setPreviewData(null); setImportReport(null); setErrorMsg(''); };
 
   const sectionTitleStyle = {

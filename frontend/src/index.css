@@ -346,21 +346,21 @@ h1, h2, h3, h4, h5, h6 {
 
 .neon-table th, .classic-table th {
   background: var(--bg-subtle);
-  color: var(--text-dark);
+  color: #1e293b;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 12px 16px;
+  padding: 13px 16px;
   border-bottom: 1px solid var(--border-light);
   white-space: nowrap;
 }
 
 .neon-table td, .classic-table td {
-  padding: 14px 16px;
+  padding: 15px 16px;
   border-bottom: 1px solid var(--border-light);
-  font-size: 14px;
-  color: var(--text-body);
+  font-size: 15.5px;
+  color: #1e293b;
 }
 
 .neon-table tr:hover td, .classic-table tr:hover td {

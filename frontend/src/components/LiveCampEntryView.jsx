@@ -1,3 +1,26 @@
+/**
+ * ============================================================================
+ * File: frontend/src/components/LiveCampEntryView.jsx
+ * Purpose: Live Mobile Camp Donor Registration & 90-Day Safety Screening View
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Implements the point-of-care registration interface for mobile blood drives
+ * and hospital collection centers.
+ *
+ * Core Capabilities:
+ * 1. Instant 10-Digit Phone Auto-Lookup:
+ *    - Validates phone format and immediately checks the backend for repeat donors.
+ * 2. 90-Day Clinical Safety Enforcement:
+ *    - If donor donated within the past 90 days, displays a high-visibility clinical
+ *      block banner preventing donation submission.
+ * 3. Clinical Vitals Pre-Screening:
+ *    - Captures Hemoglobin (g/dL), Weight (kg), Pulse, Blood Pressure, Pack Size (350/450 ml).
+ * 4. Dual Submission Pathways:
+ *    - 'POST /api/donors' for brand-new donors.
+ *    - 'POST /api/donors/:id/donate' for repeat eligible donors.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import {
@@ -8,6 +31,7 @@ import {
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function LiveCampEntryView({ onSelectDonor }) {
+  // Demographic form state
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -18,6 +42,8 @@ export default function LiveCampEntryView({ onSelectDonor }) {
   const [campLocation, setCampLocation] = useState('City Hall Drive (#104)');
   const [donationDate, setDonationDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  
+  // Clinical vitals screening state
   const [hemoglobin, setHemoglobin] = useState('');
   const [weight, setWeight] = useState('');
   const [pulse, setPulse] = useState('');
@@ -26,6 +52,7 @@ export default function LiveCampEntryView({ onSelectDonor }) {
   const [packSize, setPackSize] = useState('450');
   const [declarations, setDeclarations] = useState([true, true, true]);
 
+  // Lookup & duplicate checking state
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [existingDonor, setExistingDonor] = useState(null);
   const [phoneError, setPhoneError] = useState('');
@@ -34,6 +61,9 @@ export default function LiveCampEntryView({ onSelectDonor }) {
   const [successResult, setSuccessResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  /**
+   * Phone input handler: strips non-digits, validates 10-digit format, and triggers auto-lookup
+   */
   const handlePhoneChange = (e) => {
     const val = e.target.value.replace(/\D/g, '');
     setPhone(val);
@@ -47,6 +77,9 @@ export default function LiveCampEntryView({ onSelectDonor }) {
     else if (val.length < 10) setExistingDonor(null);
   };
 
+  /**
+   * Email input handler: validates standard email format
+   */
   const handleEmailChange = (e) => {
     const val = e.target.value;
     setEmail(val);
@@ -167,18 +200,18 @@ export default function LiveCampEntryView({ onSelectDonor }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#b52426', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#b52426' }} />
-            Live Camp Intake Mode
+            Blood Donation Camp
           </div>
           <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#002045', margin: '0 0 4px 0', letterSpacing: '-0.01em' }}>
-            Live Blood Donation Entry
+            Register a Blood Donation
           </h1>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-            Real-time donor intake, eligibility verification, and mandatory 90-day interval validation.
+            Enter the donor's details below. We'll check automatically if the person has donated in the past 90 days.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#6b7280' }}>
           <MapPin size={16} color="#9ca3af" />
-          Venue: <strong style={{ color: '#002045', fontWeight: 600 }}>{campLocation}</strong>
+          Location: <strong style={{ color: '#002045', fontWeight: 600 }}>{campLocation}</strong>
         </div>
       </div>
 
@@ -209,8 +242,8 @@ export default function LiveCampEntryView({ onSelectDonor }) {
       {/* STEP 1: Donor Verification */}
       <section style={{ marginBottom: '48px' }}>
         <div style={{ marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: '0 0 2px 0' }}>1. Donor Verification & Contact</h2>
-          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Enter mobile number or email address to verify history from Apex Central Registry.</p>
+          <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: '0 0 2px 0' }}>Step 1 — Search Donor</h2>
+          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Enter the donor's mobile number or email to check if they've donated before.</p>
         </div>
 
         {/* Search Bar with Phone & Email */}
@@ -268,7 +301,7 @@ export default function LiveCampEntryView({ onSelectDonor }) {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '12px 16px', borderRadius: '8px', background: 'rgba(254,242,242,0.7)', border: '1px solid rgba(254,202,202,0.6)', color: '#7f1d1d', marginTop: '8px' }}>
                 <AlertCircle size={18} color="#dc2626" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div style={{ fontSize: '14px', lineHeight: 1.5 }}>
-                  <strong style={{ color: '#450a0a' }}>Safety Gap Interval Notice:</strong> Last donation was <span style={{ fontWeight: 600 }}>{existingDonor.last_donation_date}</span>. Statutory Whole Blood rest gap is 90 days. Next eligible date: <span style={{ fontWeight: 600 }}>{existingDonor.next_eligible_date}</span> ({existingDonor.eligibility.daysRemaining} days remaining).
+                  <strong style={{ color: '#450a0a' }}>Cannot Donate Yet:</strong> This donor's last donation was on <span style={{ fontWeight: 600 }}>{existingDonor.last_donation_date}</span>. Donors must wait 90 days between donations. Next eligible date: <span style={{ fontWeight: 600 }}>{existingDonor.next_eligible_date}</span> ({existingDonor.eligibility.daysRemaining} days remaining).
                 </div>
               </div>
             )}
@@ -276,9 +309,9 @@ export default function LiveCampEntryView({ onSelectDonor }) {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '12px 16px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', marginTop: '8px' }}>
                 <CheckCircle2 size={18} color="#15803d" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div style={{ fontSize: '14px', lineHeight: 1.5, color: '#14532d' }}>
-                  <strong>Eligible to Donate.</strong> Last donation on <span style={{ fontWeight: 600 }}>{existingDonor.last_donation_date}</span> (90+ days ago). 3-month safety window cleared.
+                  <strong>This donor can donate today.</strong> Last donation was on <span style={{ fontWeight: 600 }}>{existingDonor.last_donation_date}</span> — that is 90+ days ago.
                   <button onClick={handleRecordRepeatDonation} disabled={submitting} style={{ marginLeft: '16px', fontSize: '13px', fontWeight: 600, color: '#ffffff', background: '#002045', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
-                    {submitting ? 'Recording...' : `Record New Donation for ${existingDonor.full_name.split(' ')[0]}`}
+                    {submitting ? 'Saving...' : `Record Donation for ${existingDonor.full_name.split(' ')[0]}`}
                   </button>
                 </div>
               </div>
@@ -291,8 +324,8 @@ export default function LiveCampEntryView({ onSelectDonor }) {
       <form onSubmit={handleRegisterNewDonor} style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
         <div>
           <div style={{ paddingBottom: '12px', borderBottom: '1px solid rgba(229,231,235,0.8)', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: '0 0 2px 0' }}>2. Donor Profile & Vitals</h2>
-            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Verify identity and confirm pre-donation screening parameters.</p>
+            <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: '0 0 2px 0' }}>Step 2 — Donor Details</h2>
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Fill in the donor's personal information and health check details.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }}>
@@ -488,7 +521,7 @@ export default function LiveCampEntryView({ onSelectDonor }) {
             style={{ height: '48px', padding: '0 32px', background: '#b52426', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             {submitting ? <RefreshCw className="spin" size={16} /> : '✓'}
-            {submitting ? 'Registering...' : 'Verify & Register Donor'}
+            {submitting ? 'Saving...' : 'Save & Register Donor'}
           </button>
         </div>
       </form>
@@ -496,7 +529,7 @@ export default function LiveCampEntryView({ onSelectDonor }) {
       {/* Recent Intakes Log */}
       <section style={{ marginTop: '64px', paddingTop: '32px', borderTop: '1px solid rgba(229,231,235,0.8)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: 0 }}>Recent Intakes ({campLocation})</h3>
+          <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#002045', margin: 0 }}>Recent Registrations ({campLocation})</h3>
           <span style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>Today: Active</span>
         </div>
         <div style={{ overflowX: 'auto' }}>

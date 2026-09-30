@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * File: frontend/src/components/LoginModal.jsx
+ * Purpose: Two-Factor Authentication (2FA) Modal & Staff Login Workflow
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Implements the mandatory security modal that guards hospital staff operations:
+ *
+ * Authentication Steps:
+ * 1. Step 1 (CREDENTIALS): Email and password submission.
+ * 2. Step 2A (2FA_SETUP): For first-time staff, renders an interactive QR code
+ *    and secret key for enrollment into Google/Microsoft Authenticator.
+ * 3. Step 2B (2FA_VERIFY): Challenges staff for a real-time 6-digit TOTP pin.
+ *    Upon verification, commits JWT tokens to local storage and unlocks clinical views.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -6,6 +23,7 @@ import { ShieldCheck, Key, Lock, Mail, QrCode, AlertCircle, ArrowRight, UserChec
 export default function LoginModal() {
   const { loginWithPassword, complete2FALogin, complete2FAEnrollment } = useAuth();
 
+  // Multi-step modal navigation state
   const [step, setStep] = useState('CREDENTIALS'); // 'CREDENTIALS' | '2FA_VERIFY' | '2FA_SETUP'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,11 +33,14 @@ export default function LoginModal() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
 
+  // UI status feedback state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Step 1: Submit Credentials
+  /**
+   * Step 1: Submits email and password to begin the 2-step authentication challenge
+   */
   const handleCredentialSubmit = async (e) => {
     e.preventDefault();
     setError('');

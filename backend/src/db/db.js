@@ -1,37 +1,72 @@
+/**
+ * ============================================================================
+ * File: backend/src/db/db.js
+ * Purpose: Database Abstraction Layer — PostgreSQL & SQLite Dual-Engine Support
+ * ----------------------------------------------------------------------------
+ * Description:
+ * This module provides a unified database interface that supports both
+ * PostgreSQL (production) and SQLite (development fallback) databases.
+ *
+ * How It Works:
+ * 1. On startup, attempts to connect to PostgreSQL using the DATABASE_URL.
+ * 2. If PostgreSQL is unreachable, automatically falls back to a local SQLite
+ *    file (`hospital_blood_bank.sqlite`) for zero-dependency development.
+ * 3. Exports a single `query(sql, params)` function that transparently handles
+ *    the differences between both engines (syntax conversion, parameterization).
+ *
+ * Tables Managed:
+ * - `users`             — Clinical staff accounts and authentication credentials
+ * - `donors`            — Registered blood donors with eligibility metadata
+ * - `donation_history`  — Historical record of every donation event per donor
+ * - `notification_logs` — Delivery logs for WhatsApp/Email reminder dispatches
+ * - `audit_logs`        — Security and compliance event audit trail
+ * - `system_settings`   — Hospital system configuration key-value store
+ * ============================================================================
+ */
+
 const { Pool } = require('pg');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
 
+// Active database connection objects (only one will be used at runtime)
 let pgPool = null;
 let sqliteDb = null;
-let activeEngine = 'postgres'; // 'postgres' or 'sqlite'
+let activeEngine = 'postgres'; // Either 'postgres' or 'sqlite'
 
-// Initialize SQLite database file in backend directory
+// Path to the local SQLite fallback database file
 const sqliteFilePath = path.join(__dirname, '../../hospital_blood_bank.sqlite');
 
+/**
+ * Returns the current active database engine name ('postgres' or 'sqlite')
+ */
 function getActiveEngine() {
   return activeEngine;
 }
 
-// Convert PostgreSQL $1, $2 parameter placeholders to SQLite ? placeholders
+/**
+ * Converts PostgreSQL positional parameter syntax ($1, $2...) and data types
+ * to SQLite-compatible equivalents (?, LIKE, TEXT, DATETIME, etc.)
+ *
+ * @param {string} sql - Original PostgreSQL SQL string
+ * @returns {string} SQLite-compatible SQL string
+ */
 function pgToSqliteQuery(sql) {
-  let paramIndex = 1;
-  let converted = sql.replace(/\$\d+/g, () => '?');
-  // Replace ILIKE with LIKE for SQLite
-  converted = converted.replace(/\bILIKE\b/gi, 'LIKE');
-  // Replace JSONB with TEXT
-  converted = converted.replace(/\bJSONB\b/gi, 'TEXT');
-  // Replace UUID DEFAULT uuid_generate_v4() with TEXT
+  let converted = sql.replace(/\$\d+/g, () => '?'); // $1 → ?
+  converted = converted.replace(/\bILIKE\b/gi, 'LIKE');  // Case-insensitive LIKE
+  converted = converted.replace(/\bJSONB\b/gi, 'TEXT');  // JSON type as TEXT
   converted = converted.replace(/UUID PRIMARY KEY DEFAULT uuid_generate_v4\(\)/gi, 'TEXT PRIMARY KEY');
-  // Replace DATE/TIMESTAMP WITH TIME ZONE
   converted = converted.replace(/TIMESTAMP WITH TIME ZONE/gi, 'DATETIME');
   return converted;
 }
 
+/**
+ * Initializes the database connection and runs schema migrations.
+ * Prefers PostgreSQL and silently falls back to SQLite if unavailable.
+ */
 async function initDatabase() {
-  // 1. Try connecting to PostgreSQL first
+  // === Attempt 1: Connect to PostgreSQL ===
   try {
     const testPool = new Pool({
       connectionString: config.DATABASE_URL,
@@ -40,13 +75,13 @@ async function initDatabase() {
     });
 
     const client = await testPool.connect();
-    await client.query('SELECT 1');
+    await client.query('SELECT 1'); // Connectivity test
     client.release();
     pgPool = testPool;
     activeEngine = 'postgres';
     console.log('✅ Connected to PostgreSQL database successfully.');
 
-    // Run PostgreSQL table migrations
+    // Run PostgreSQL schema file to create/migrate tables
     const schemaPath = path.join(__dirname, '../../../database/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
@@ -62,7 +97,7 @@ async function initDatabase() {
     console.warn('⚠️ PostgreSQL not reachable (' + pgError.message + '). Falling back to self-contained SQLite database for seamless development/testing.');
   }
 
-  // 2. Initialize SQLite Fallback
+  // === Attempt 2: Initialize SQLite Fallback ===
   return new Promise((resolve, reject) => {
     sqliteDb = new sqlite3.Database(sqliteFilePath, async (err) => {
       if (err) {
@@ -72,7 +107,7 @@ async function initDatabase() {
       activeEngine = 'sqlite';
       console.log(`✅ Initialized SQLite fallback storage at: ${sqliteFilePath}`);
 
-      // Create SQLite tables matching PostgreSQL schema
+      // Create all tables in SQLite using equivalent schema definitions
       const sqliteInitSql = `
         CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY,
@@ -175,41 +210,39 @@ async function initDatabase() {
 }
 
 /**
- * Universal query runner supporting PostgreSQL & SQLite with parameterized values
- * @param {string} sqlText PostgreSQL-style SQL query (using $1, $2, etc.)
- * @param {Array} params Array of parameter values
+ * Universal Parameterized Query Runner
+ * Abstracts the differences between PostgreSQL and SQLite query APIs.
+ * Always use parameterized values (params array) — never string-interpolate SQL.
+ *
+ * @param {string} sqlText - PostgreSQL-style SQL (e.g. "SELECT * FROM donors WHERE phone=$1")
+ * @param {Array}  params  - Array of parameter values matching positional placeholders
+ * @returns {Promise<{rows: Array, rowCount: number}>} Query result rows
  */
 async function query(sqlText, params = []) {
+  // Route to PostgreSQL if active
   if (activeEngine === 'postgres' && pgPool) {
     const res = await pgPool.query(sqlText, params);
     return res;
   }
 
-  // SQLite execution
+  // Route to SQLite fallback
   return new Promise((resolve, reject) => {
     if (!sqliteDb) {
       return reject(new Error('Database not initialized'));
     }
 
+    // Convert PostgreSQL syntax to SQLite-compatible syntax
     const sqliteSql = pgToSqliteQuery(sqlText);
     const trimmed = sqlText.trim().toUpperCase();
 
     if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH') || trimmed.includes('RETURNING')) {
-      // If query has RETURNING clause in SQLite
-      if (trimmed.includes('RETURNING')) {
-        // Strip RETURNING for SQLite execute then query back if needed
-        // For unified compatibility, we can run all() or run()
-        sqliteDb.all(sqliteSql, params, (err, rows) => {
-          if (err) return reject(err);
-          resolve({ rows: rows || [], rowCount: (rows || []).length });
-        });
-      } else {
-        sqliteDb.all(sqliteSql, params, (err, rows) => {
-          if (err) return reject(err);
-          resolve({ rows: rows || [], rowCount: (rows || []).length });
-        });
-      }
+      // SELECT and RETURNING queries — fetch all rows
+      sqliteDb.all(sqliteSql, params, (err, rows) => {
+        if (err) return reject(err);
+        resolve({ rows: rows || [], rowCount: (rows || []).length });
+      });
     } else {
+      // INSERT / UPDATE / DELETE mutations — use .run()
       sqliteDb.run(sqliteSql, params, function (err) {
         if (err) return reject(err);
         resolve({

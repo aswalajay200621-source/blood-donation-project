@@ -1,27 +1,48 @@
+/**
+ * ============================================================================
+ * File: backend/src/server.js
+ * Purpose: HTTP Server Bootstrap & Application Startup Orchestrator
+ * ----------------------------------------------------------------------------
+ * Description:
+ * This is the main Node.js entry point for the Apex Hospital Blood Bank
+ * backend server. It coordinates the boot sequence in the correct order:
+ *
+ * Startup Sequence:
+ * 1. Initializes the database (PostgreSQL preferred, SQLite fallback)
+ * 2. Seeds initial admin users and sample donor records if database is empty
+ * 3. Starts the daily background 3-month eligibility cron job
+ * 4. Binds the Express app to the configured network port
+ * 5. Registers graceful shutdown handlers (SIGTERM/SIGINT for Docker/PM2)
+ * ============================================================================
+ */
+
 const app = require('./app');
 const config = require('./config/env');
 const { initDatabase, query } = require('./db/db');
 const { seed } = require('./db/seed');
 const schedulerService = require('./services/schedulerService');
 
+/**
+ * Bootstraps and starts the hospital backend server
+ */
 async function startServer() {
   try {
     console.log('🏥 Starting Hospital Blood Donation Management System Backend...');
     
-    // 1. Initialize Database & run schema
+    // Step 1: Initialize database connection & run table schema migrations
     await initDatabase();
 
-    // 2. Check if admin user exists, if not run seed
+    // Step 2: Seed initial admin accounts if database is completely empty
     const checkUser = await query('SELECT id FROM users LIMIT 1');
     if (checkUser.rows.length === 0) {
       console.log('🔄 Initial database is empty. Seeding initial accounts and sample donor records...');
       await seed();
     }
 
-    // 3. Start automated daily 3-month eligibility scheduler
+    // Step 3: Start automated daily 3-month eligibility recall cron job
     schedulerService.startScheduler();
 
-    // 4. Start HTTP Server
+    // Step 4: Begin listening on configured HTTP port
     const server = app.listen(config.PORT, () => {
       console.log(`\n==================================================`);
       console.log(`🚀 Apex Hospital Blood Bank API is running!`);
@@ -33,7 +54,8 @@ async function startServer() {
       console.log(`==================================================\n`);
     });
 
-    // Graceful Shutdown
+    // Step 5: Register graceful shutdown handlers
+    // Ensures open database connections are released cleanly before process exit
     const gracefulShutdown = (signal) => {
       console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
       server.close(() => {
@@ -42,8 +64,9 @@ async function startServer() {
       });
     };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    // Handle OS process termination signals
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // Docker/PM2 stop
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));   // Ctrl+C in terminal
 
   } catch (error) {
     console.error('❌ Fatal error starting hospital server:', error);
@@ -51,4 +74,5 @@ async function startServer() {
   }
 }
 
+// Execute the startup sequence
 startServer();

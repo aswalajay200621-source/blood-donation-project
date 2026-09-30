@@ -1,3 +1,27 @@
+/**
+ * ============================================================================
+ * File: backend/src/services/authService.js
+ * Purpose: Authentication, Password Hashing, TOTP 2FA & JWT Token Lifecycle Service
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Encapsulates all security business logic for user authentication:
+ *
+ * Core Workflows:
+ * 1. Password Verification: Uses bcrypt to securely compare hashes.
+ * 2. Two-Factor Authentication (TOTP):
+ *    - Uses `otplib` to generate RFC 6238 compliant base32 secrets.
+ *    - Produces `otpauth://` URIs and PNG Data URLs via `qrcode` for Google/Microsoft Authenticator.
+ *    - Validates 6-digit TOTP codes with a 1-step window (clock-drift tolerance).
+ * 3. Two-Step Login Challenge:
+ *    - Issues short-lived (5-min) temporary tokens for 2FA validation challenges.
+ * 4. Token Issuance & Refresh Rotation:
+ *    - Issues 15-minute access tokens and 7-day refresh tokens signed with HMAC SHA-256.
+ *    - Validates refresh tokens against database user records.
+ * 5. Audit Logging:
+ *    - Emits structured events for LOGIN_FAILED, 2FA_ENABLED, and LOGIN_SUCCESS.
+ * ============================================================================
+ */
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
@@ -6,12 +30,18 @@ const config = require('../config/env');
 const { query } = require('../db/db');
 const { recordAudit } = require('../middleware/auditMiddleware');
 
-// Configure authenticator options
-authenticator.options = { window: 1 }; // Allow 1 step before/after for clock drift
+// Configure authenticator options: allow 1 step before/after for clock drift tolerance
+authenticator.options = { window: 1 };
 
 class AuthService {
   /**
-   * Step 1: Validate Email and Password
+   * Step 1: Validate User Email and Password
+   * If credentials are correct, returns a temporary 2FA challenge token.
+   *
+   * @param {string} email     - User email address
+   * @param {string} password  - Plaintext password
+   * @param {string} ipAddress - Client IP for audit logging
+   * @param {string} userAgent - Client browser agent string
    */
   async login(email, password, ipAddress, userAgent) {
     if (!email || !password) {
@@ -19,9 +49,12 @@ class AuthService {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    
+    // Look up user by email
     const res = await query('SELECT * FROM users WHERE email = $1', [cleanEmail]);
 
     if (res.rows.length === 0) {
+      // Audit log failed login attempt
       await recordAudit({
         userEmail: cleanEmail,
         action: 'LOGIN_FAILED',
@@ -35,10 +68,12 @@ class AuthService {
 
     const user = res.rows[0];
 
+    // Check account active status
     if (!user.is_active) {
       throw new Error('Account is deactivated. Contact hospital administrator.');
     }
 
+    // Compare bcrypt password hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       await recordAudit({
@@ -53,9 +88,9 @@ class AuthService {
       throw new Error('Invalid email or password');
     }
 
-    // Check if 2FA is enabled
+    // Check if 2FA is already enabled on this account
     if (user.two_factor_enabled && user.two_factor_secret) {
-      // Issue a short-lived temp token (valid for 5 mins) exclusively for completing 2FA
+      // Issue short-lived temporary token exclusively for completing 2FA verification
       const temp2FAToken = jwt.sign(
         { userId: user.id, purpose: '2FA_VERIFICATION' },
         config.JWT_ACCESS_SECRET,
@@ -74,7 +109,7 @@ class AuthService {
         }
       };
     } else {
-      // 2FA not yet enabled for this user -> require setup
+      // 2FA not yet enabled -> prompt user to scan QR code setup
       const temp2FAToken = jwt.sign(
         { userId: user.id, purpose: '2FA_SETUP' },
         config.JWT_ACCESS_SECRET,
@@ -96,7 +131,10 @@ class AuthService {
   }
 
   /**
-   * Step 2A: Generate QR Code for 2FA Enrollment (First Time)
+   * Step 2A: Generate QR Code for Initial 2FA Enrollment
+   *
+   * @param {string} userId - User identifier
+   * @returns {Promise<{secret: string, otpauthUrl: string, qrCodeDataUrl: string, email: string}>}
    */
   async generate2FAEnrollment(userId) {
     const res = await query('SELECT id, email, name, two_factor_secret FROM users WHERE id = $1', [userId]);
@@ -105,13 +143,17 @@ class AuthService {
     const user = res.rows[0];
     let secret = user.two_factor_secret;
 
+    // Generate fresh secret if user doesn't already have one
     if (!secret) {
       secret = authenticator.generateSecret();
-      // Save secret temporarily
+      // Store secret in temporary column pending user confirmation
       await query('UPDATE users SET two_factor_temp_secret = $1 WHERE id = $2', [secret, userId]);
     }
 
+    // Build standard otpauth URI
     const otpauthUrl = authenticator.keyuri(user.email, config.TWO_FACTOR_APP_NAME, secret);
+    
+    // Generate QR code base64 Data URL for direct image rendering in frontend
     const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl);
 
     return {
@@ -123,7 +165,7 @@ class AuthService {
   }
 
   /**
-   * Step 2B: Verify TOTP Code and complete enrollment
+   * Step 2B: Verify initial 6-digit TOTP code and permanently enable 2FA on the account
    */
   async verifyAndEnable2FA(userId, token, ipAddress, userAgent) {
     const res = await query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -136,17 +178,19 @@ class AuthService {
       throw new Error('No 2FA secret pending activation');
     }
 
+    // Validate 6-digit OTP code against secret
     const isValid = authenticator.verify({ token: token.trim(), secret });
     if (!isValid) {
       throw new Error('Invalid 6-digit authentication code. Please check your authenticator app.');
     }
 
-    // Save and enable
+    // Permanently enable 2FA on user record and clear temporary secret
     await query(
       'UPDATE users SET two_factor_secret = $1, two_factor_enabled = 1, two_factor_temp_secret = NULL WHERE id = $2',
       [secret, userId]
     );
 
+    // Audit log 2FA activation
     await recordAudit({
       userId: user.id,
       userEmail: user.email,
@@ -157,11 +201,12 @@ class AuthService {
       details: { message: 'User successfully enrolled in TOTP 2FA' }
     });
 
+    // Issue permanent JWT tokens
     return this.generateAuthTokens(user);
   }
 
   /**
-   * Step 2C: Verify TOTP Code during standard login
+   * Step 2C: Verify 6-digit TOTP code during routine login challenge
    */
   async verify2FALogin(temp2FAToken, totpCode, ipAddress, userAgent) {
     let decoded;
@@ -185,8 +230,10 @@ class AuthService {
       throw new Error('2FA not configured for user');
     }
 
+    // Allow development test bypass codes '123456' or '000000' in non-production environments
     const isDevCode = (config.NODE_ENV === 'development' || !config.NODE_ENV) && (totpCode.trim() === '123456' || totpCode.trim() === '000000');
     const isValid = isDevCode || authenticator.verify({ token: totpCode.trim(), secret });
+    
     if (!isValid) {
       await recordAudit({
         userId: user.id,
@@ -200,6 +247,7 @@ class AuthService {
       throw new Error('Invalid 6-digit OTP code');
     }
 
+    // Audit log successful login
     await recordAudit({
       userId: user.id,
       userEmail: user.email,
@@ -210,11 +258,12 @@ class AuthService {
       details: { role: user.role }
     });
 
+    // Issue full session JWT tokens
     return this.generateAuthTokens(user);
   }
 
   /**
-   * Issue short-lived Access Token and Refresh Token
+   * Creates standard JWT access and refresh token pair for authenticated user
    */
   generateAuthTokens(user) {
     const payload = {
@@ -224,10 +273,12 @@ class AuthService {
       role: user.role
     };
 
+    // Sign access token (short-lived)
     const accessToken = jwt.sign(payload, config.JWT_ACCESS_SECRET, {
       expiresIn: config.JWT_ACCESS_EXPIRY
     });
 
+    // Sign refresh token (longer-lived)
     const refreshToken = jwt.sign(payload, config.JWT_REFRESH_SECRET, {
       expiresIn: config.JWT_REFRESH_EXPIRY
     });
@@ -245,7 +296,7 @@ class AuthService {
   }
 
   /**
-   * Refresh Token Rotation
+   * Validates refresh token and generates fresh access/refresh token pair
    */
   async refreshToken(refreshToken) {
     try {

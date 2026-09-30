@@ -1,21 +1,46 @@
+/**
+ * ============================================================================
+ * File: backend/src/app.js
+ * Purpose: Express Application Configuration & Middleware Pipeline
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Creates and configures the core Express.js HTTP application instance.
+ * All cross-cutting concerns (security, CORS, rate limiting, routing)
+ * are assembled in this file before the server begins listening for requests.
+ *
+ * Middleware Layers Applied (in order):
+ * 1. Helmet        — Injects secure HTTP security response headers
+ * 2. CORS          — Restricts cross-origin access to allowed frontend origins only
+ * 3. Body Parsers  — Parses incoming JSON and URL-encoded request bodies (max 5MB)
+ * 4. Rate Limiter  — Prevents abuse and DDoS attacks on all /api/* endpoints
+ * 5. API Routes    — Maps route modules to /api/* path prefixes
+ * 6. 404 Handler   — Returns structured error for unknown routes
+ * 7. Global Error  — Catches and formats all unhandled Express errors
+ * ============================================================================
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const config = require('./config/env');
 const { apiLimiter } = require('./middleware/rateLimiter');
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
-const donorRoutes = require('./routes/donorRoutes');
-const excelRoutes = require('./routes/excelRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const settingsRoutes = require('./routes/settingsRoutes');
-const auditRoutes = require('./routes/auditRoutes');
+// Route module imports — each handles a specific clinical domain
+const authRoutes = require('./routes/authRoutes');           // Login, 2FA, JWT management
+const donorRoutes = require('./routes/donorRoutes');         // Donor CRUD, eligibility, reminders
+const excelRoutes = require('./routes/excelRoutes');         // Excel import preview & commit
+const notificationRoutes = require('./routes/notificationRoutes'); // Reminder dispatch & logs
+const dashboardRoutes = require('./routes/dashboardRoutes'); // Blood stock metrics
+const settingsRoutes = require('./routes/settingsRoutes');   // System config & cron triggers
+const auditRoutes = require('./routes/auditRoutes');         // Security audit event logs
 
 const app = express();
 
-// 1. Security HTTP Headers with Helmet
+// ============================================================
+// 1. Security HTTP Headers — Helmet Middleware
+// ============================================================
+// Helmet automatically sets headers like X-Frame-Options, X-XSS-Protection,
+// Content-Security-Policy to defend against common web attacks
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -32,7 +57,10 @@ app.use(
   })
 );
 
-// 2. Strict CORS Configuration
+// ============================================================
+// 2. CORS — Cross-Origin Resource Sharing Policy
+// ============================================================
+// Restricts API access to only pre-registered frontend origins
 const allowedOrigins = [
   config.FRONTEND_URL,
   'http://localhost:5173',
@@ -43,7 +71,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      // Allow requests with no Origin header (e.g. server-to-server, curl, mobile)
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
         return callback(null, true);
@@ -56,14 +84,22 @@ app.use(
   })
 );
 
-// 3. Body Parsing with Safe Payload Limits (Prevent Large Payload DoS)
+// ============================================================
+// 3. Body Parsing Middleware
+// ============================================================
+// Limits request body size to 5MB to prevent large payload denial-of-service attacks
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// 4. Rate Limiter for general endpoints
+// ============================================================
+// 4. Rate Limiter — Throttle API abuse attempts
+// ============================================================
+// Applies rate limiting to all API routes (e.g. max 100 req / 15 min per IP)
 app.use('/api/', apiLimiter);
 
-// 5. Health Check Endpoint
+// ============================================================
+// 5. Health Check Endpoint — Used by monitoring tools & probes
+// ============================================================
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -78,16 +114,20 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 6. Mount API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/donors', donorRoutes);
-app.use('/api/excel', excelRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/audit', auditRoutes);
+// ============================================================
+// 6. API Route Mounts — Domain-Specific Route Registration
+// ============================================================
+app.use('/api/auth', authRoutes);               // Authentication & 2FA endpoints
+app.use('/api/donors', donorRoutes);            // Donor management endpoints
+app.use('/api/excel', excelRoutes);             // Excel migration endpoints
+app.use('/api/notifications', notificationRoutes); // Reminder channel endpoints
+app.use('/api/dashboard', dashboardRoutes);     // Clinical overview metrics
+app.use('/api/settings', settingsRoutes);       // Hospital system configuration
+app.use('/api/audit', auditRoutes);             // Security audit log endpoints
 
-// 7. 404 Route Handler
+// ============================================================
+// 7. 404 Catch-All — Unknown Route Responses
+// ============================================================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -96,7 +136,10 @@ app.use((req, res) => {
   });
 });
 
-// 8. Centralized Global Error Handler
+// ============================================================
+// 8. Centralized Error Handler — Catches all unhandled Express errors
+// ============================================================
+// Shows full stack traces in development, redacts them in production
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
   const isDev = config.NODE_ENV === 'development';

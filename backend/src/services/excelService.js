@@ -1,12 +1,38 @@
+/**
+ * ============================================================================
+ * File: backend/src/services/excelService.js
+ * Purpose: Excel / CSV Parsing, Column Normalization & Batch Migration Engine
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Implements Phase 1 data migration from legacy spreadsheets into the system:
+ *
+ * Core Capabilities:
+ * 1. Flexible Column Mapping: Normalizes diverse header variations (e.g. "Mobile",
+ *    "Contact No", "Cell" -> `phone`; "Blood Type", "BG" -> `blood_group`).
+ * 2. Excel Epoch & Text Date Parsing: Translates numeric serials or standard ISO strings.
+ * 3. Dry-Run Validation: Validates rows without mutating database state, reporting
+ *    individual errors by row number.
+ * 4. Deduplicated Database Commit: Updates existing records (keeping latest donation
+ *    date and incrementing total count) or inserts new records.
+ * 5. Official Template Generator: Creates an formatted `.xlsx` workbook buffer
+ *    with sample guidance data for hospital staff to download.
+ * ============================================================================
+ */
+
 const xlsx = require('xlsx');
 const donorService = require('./donorService');
 const { query } = require('../db/db');
 
+/**
+ * Generates unique UUID-style identifier strings
+ */
 function genId() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'id_' + Math.random().toString(36).substring(2, 11);
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'id_' + Math.random().toString(36).substring(2, 11);
 }
 
-// Column header aliases for flexible mapping
+// Column header aliases for flexible fuzzy mapping across different hospital spreadsheet formats
 const HEADER_ALIASES = {
   full_name: ['full name', 'fullname', 'name', 'donor name', 'donor_name', 'patient name', 'donor'],
   phone: ['phone', 'mobile', 'contact', 'phone number', 'mobile number', 'contact number', 'cell', 'phone_number'],
@@ -21,7 +47,10 @@ const HEADER_ALIASES = {
 
 class ExcelService {
   /**
-   * Normalize and map arbitrary column headers to standard fields
+   * Normalizes raw spreadsheet headers and maps them to canonical schema attributes
+   *
+   * @param {Object} rawRow - Unprocessed row object from xlsx sheet_to_json
+   * @returns {Object} Mapped row with standard schema keys
    */
   mapRowHeaders(rawRow) {
     const mapped = {};
@@ -40,12 +69,15 @@ class ExcelService {
   }
 
   /**
-   * Format Excel date number or string to YYYY-MM-DD
+   * Parses Excel date numbers (serial days since 1900) or text strings into 'YYYY-MM-DD'
+   *
+   * @param {number|string|Date} val - Raw cell value
+   * @returns {string|null} Standard ISO date string or null
    */
   parseExcelDate(val) {
     if (!val) return null;
     if (typeof val === 'number') {
-      // Excel epoch date
+      // Convert Excel serial epoch (days since Jan 1 1900)
       const date = new Date(Math.round((val - 25569) * 86400 * 1000));
       return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
     }
@@ -57,7 +89,10 @@ class ExcelService {
   }
 
   /**
-   * Parse uploaded file buffer (XLSX or CSV) and preview / dry-run validate
+   * Reads an uploaded binary file buffer (XLSX or CSV) and extracts raw row objects
+   *
+   * @param {Buffer} buffer - File buffer from multer
+   * @returns {Array<Object>} Raw rows
    */
   parseFile(buffer) {
     const workbook = xlsx.read(buffer, { type: 'buffer', cellDates: true });
@@ -77,14 +112,17 @@ class ExcelService {
   }
 
   /**
-   * Validate and preview rows without persisting
+   * Performs non-destructive dry-run validation on parsed spreadsheet rows
+   *
+   * @param {Array<Object>} rawData - Parsed spreadsheet data
+   * @returns {Promise<Object>} Summary report with validRows and invalidRows arrays
    */
   async previewAndValidate(rawData) {
     const validRows = [];
     const invalidRows = [];
 
     for (let i = 0; i < rawData.length; i++) {
-      const rowNumber = i + 2; // Accounting for 1-based index and header row
+      const rowNumber = i + 2; // Row number in spreadsheet (accounting for 1-based index and header row)
       const rawRow = rawData[i];
       const mapped = this.mapRowHeaders(rawRow);
 
@@ -101,8 +139,8 @@ class ExcelService {
         errors.push(phoneValidation.error);
       }
 
-      // Validate Email
-      const emailValidation = donorService.validateEmail(mapped.email);
+      // Validate Email (allows empty with fallback)
+      const emailValidation = donorService.validateEmail(mapped.email, phoneValidation.sanitized);
       if (!emailValidation.valid) {
         errors.push(emailValidation.error);
       }
@@ -119,7 +157,7 @@ class ExcelService {
         errors.push('Last Donation Date is required and must be a valid date (YYYY-MM-DD)');
       }
 
-      // Age validation if provided
+      // Validate Age boundaries if provided
       let ageNum = null;
       if (mapped.age) {
         ageNum = parseInt(mapped.age, 10);
@@ -129,6 +167,7 @@ class ExcelService {
       }
 
       if (errors.length > 0) {
+        // Collect rejection reasons
         invalidRows.push({
           rowNumber,
           rawData: rawRow,
@@ -137,6 +176,7 @@ class ExcelService {
           reason: errors.join('; ')
         });
       } else {
+        // Compute 3-month eligibility window for valid row
         const nextEligible = donorService.calculateNextEligibleDate(dateStr);
         const eligibility = donorService.computeEligibility(dateStr, nextEligible);
 
@@ -167,7 +207,12 @@ class ExcelService {
   }
 
   /**
-   * Commit Import Batch to Database
+   * Persists validated spreadsheet rows to the database with duplicate handling
+   *
+   * @param {Array<Object>} validatedRows - Rows that passed preview validation
+   * @param {Object} staffUser - Logged-in staff performing the import
+   * @param {boolean} updateExistingDuplicates - If true, merges data into existing donor records
+   * @returns {Promise<Object>} Import execution summary report
    */
   async commitImport(validatedRows, staffUser, updateExistingDuplicates = true) {
     const importReport = {
@@ -184,16 +229,15 @@ class ExcelService {
 
     for (const row of validatedRows) {
       try {
-        // Check for duplicate by phone or email
+        // Check if donor already exists by phone or email
         const existing = await donorService.findDuplicate(row.phone, row.email);
 
         if (existing) {
           if (updateExistingDuplicates) {
-            // Update existing record
+            // Update existing donor: keep most recent donation date
             const newDateObj = new Date(row.last_donation_date);
             const prevDateObj = new Date(existing.last_donation_date);
 
-            // Keep the latest donation date
             const latestDateStr = newDateObj > prevDateObj ? row.last_donation_date : existing.last_donation_date;
             const newNextEligible = donorService.calculateNextEligibleDate(latestDateStr);
 
@@ -210,7 +254,7 @@ class ExcelService {
               ]
             );
 
-            // Add history
+            // Record imported historical event
             await query(
               `INSERT INTO donation_history (
                 id, donor_id, donation_date, camp_location, units_donated, source,
@@ -233,6 +277,7 @@ class ExcelService {
               last_donation_date: latestDateStr
             });
           } else {
+            // Reject duplicate row if updating is disabled
             importReport.rejectedCount++;
             importReport.rejectedRecords.push({
               rowNumber: row.rowNumber,
@@ -243,7 +288,7 @@ class ExcelService {
             });
           }
         } else {
-          // Brand new insert
+          // Insert brand-new donor record
           const donorId = genId();
           await query(
             `INSERT INTO donors (
@@ -258,7 +303,7 @@ class ExcelService {
             ]
           );
 
-          // Add history
+          // Insert historical entry
           await query(
             `INSERT INTO donation_history (
               id, donor_id, donation_date, camp_location, units_donated, source,
@@ -297,7 +342,9 @@ class ExcelService {
   }
 
   /**
-   * Generate an official downloadable sample Excel template
+   * Generates a downloadable standard Excel workbook template with sample data rows
+   *
+   * @returns {Buffer} XLSX file buffer
    */
   generateSampleTemplate() {
     const templateData = [

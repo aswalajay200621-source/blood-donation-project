@@ -1,3 +1,22 @@
+/**
+ * ============================================================================
+ * File: frontend/src/components/DonorDetailsModal.jsx
+ * Purpose: Detailed Clinical Profile & Historical Donation Ledger Modal
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Renders an in-depth clinical modal view for a selected donor:
+ *
+ * Information Displayed:
+ * 1. Demographic & Clinical Header: Blood group badge, donor name, registry source.
+ * 2. Contact Information: Validated phone and email with direct action links.
+ * 3. 90-Day Clinical Eligibility Card:
+ *    - Last donation date, next eligible date, days remaining, status badge.
+ *    - On-demand "Send Recall Reminder" button for direct communication.
+ * 4. Chronological Donation History Ledger:
+ *    - Table listing every past donation event, camp location, units, and notes.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import {
@@ -17,11 +36,15 @@ import {
 } from 'lucide-react';
 
 export default function DonorDetailsModal({ donor, onClose, onRefresh }) {
+  // Reminder dispatch feedback state
   const [sendingReminder, setSendingReminder] = useState(false);
   const [reminderMessage, setReminderMessage] = useState(null);
 
   if (!donor) return null;
 
+  /**
+   * Dispatches an eligibility notification to the active donor via WhatsApp and Email
+   */
   const handleSendReminder = async () => {
     try {
       setSendingReminder(true);

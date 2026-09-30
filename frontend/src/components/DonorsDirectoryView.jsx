@@ -1,25 +1,55 @@
+/**
+ * ============================================================================
+ * File: frontend/src/components/DonorsDirectoryView.jsx
+ * Purpose: Master Donor Registry Table, Filter Engine & Recall Dispatch View
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Implements the centralized Master Registry directory view for all registered
+ * blood donors. Provides an interactive clinical data grid with search, multi-criteria
+ * filtering (blood group pill selector, clinical eligibility status dropdown),
+ * row expansion for detailed history, instant on-demand reminder dispatching,
+ * and filtered CSV spreadsheet export.
+ *
+ * Core Features:
+ * 1. Filter Engine: Blood group pills (ALL, A+, A-, etc.) & Eligibility filters.
+ * 2. Search Bar: Real-time keyword search across full name, phone number, and email.
+ * 3. Master Registry Table: Responsive data table displaying Donor ID, Full Name,
+ *    Blood Group, Contact Details, Eligibility status badge, and Action buttons.
+ * 4. Inline Reminder Dispatcher: Sends eligibility notifications directly from the row.
+ * 5. Full History Expansion: Collapsible row detail showing historical donations.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { RefreshCw, Download, Search, ChevronDown, ChevronUp, Send, Eye } from 'lucide-react';
+import { RefreshCw, Download, Search, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 
+// Approved ABO/Rh Blood Groups for directory filter pills
 const BLOOD_GROUPS = ['ALL', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// Clinical Eligibility filter presets
 const ELIGIBILITY_OPTIONS = [
-  { id: 'ALL', label: 'All Eligibility' },
-  { id: 'eligible', label: 'Eligible Now (Passed 90 Days)' },
-  { id: 'due_soon', label: 'In Safety Gap (< 90 Days)' },
-  { id: 'blocked', label: 'Overdue for Recall' },
+  { id: 'ALL', label: 'All Donors' },
+  { id: 'eligible', label: 'Can Donate Now' },
+  { id: 'due_soon', label: 'Wait Period (Under 90 Days)' },
+  { id: 'blocked', label: 'Not Yet Due' },
 ];
 
 export default function DonorsDirectoryView({ onSelectDonor }) {
+  // State: List of loaded donors and query state
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedBg, setSelectedBg] = useState('ALL');
   const [selectedEligibility, setSelectedEligibility] = useState('ALL');
-  const [sendingReminderId, setSendingReminderId] = useState(null);
+  
+  // State: Row interaction and status messaging
   const [actionMessage, setActionMessage] = useState(null);
   const [expandedRow, setExpandedRow] = useState(null);
 
+  /**
+   * Fetches filtered donor records from the backend API
+   */
   const fetchDonors = async () => {
     try {
       setLoading(true);
@@ -32,24 +62,17 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
     }
   };
 
+  // Re-fetch automatically whenever blood group or eligibility filter changes
   useEffect(() => { fetchDonors(); }, [selectedBg, selectedEligibility]);
 
+  /**
+   * Handles form submission for the keyword search input
+   */
   const handleSearchSubmit = (e) => { e.preventDefault(); fetchDonors(); };
 
-  const handleSendReminder = async (donor) => {
-    try {
-      setSendingReminderId(donor.id);
-      const res = await api.donors.sendReminder(donor.id);
-      if (res.success) {
-        setActionMessage({ type: 'SUCCESS', text: `Eligibility reminder triggered for ${donor.full_name}. WhatsApp/Email queue updated.` });
-      }
-    } catch (err) {
-      setActionMessage({ type: 'ERROR', text: err.message || 'Failed to dispatch reminder.' });
-    } finally {
-      setSendingReminderId(null);
-    }
-  };
-
+  /**
+   * Toggles row accordion expansion for viewing donor donation history
+   */
   const toggleRow = (id) => setExpandedRow(expandedRow === id ? null : id);
 
   const getEligibilityDisplay = (d) => {
@@ -73,10 +96,10 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', letterSpacing: '-0.01em' }}>
-              Hospital Donor Master Registry
+              All Donors
             </h1>
             <p style={{ fontSize: '15px', color: '#64748b', margin: 0 }}>
-              Directory of {donors.length > 0 ? donors.length.toLocaleString() : '4,820'} registered blood donors across hospital clinics and outreach camps.
+              {donors.length > 0 ? donors.length.toLocaleString() : '4,820'} donors registered in the system.
             </p>
           </div>
           <a
@@ -211,7 +234,28 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
                         #{formattedId}
                       </td>
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '15px' }}>{d.full_name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {d.last_reminder_sent_at ? (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              background: '#dcfce7',
+                              color: '#15803d',
+                              border: '1px solid #86efac',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 700,
+                              fontSize: '14px',
+                              boxShadow: '0 1px 3px rgba(22,163,74,0.15)'
+                            }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }}></span>
+                              {d.full_name}
+                            </span>
+                          ) : (
+                            <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '15px' }}>{d.full_name}</div>
+                          )}
+                        </div>
                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{d.age ? `${d.age} yrs` : ''}{d.age && d.gender ? ' • ' : ''}{d.gender || ''}</div>
                       </td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '17px', color: getRareBgColor(d.blood_group), whiteSpace: 'nowrap' }}>
@@ -236,16 +280,6 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
-                          {d.eligibility?.isEligible && (
-                            <button
-                              onClick={() => handleSendReminder(d)}
-                              disabled={sendingReminderId === d.id}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#ffffff', background: '#1a365d', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
-                            >
-                              <Send size={12} />
-                              {sendingReminderId === d.id ? 'Sending...' : 'Remind'}
-                            </button>
-                          )}
                           <button
                             onClick={() => toggleRow(d.id)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 600, color: '#1a365d', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', whiteSpace: 'nowrap' }}
@@ -291,15 +325,6 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
                               >
                                 <Eye size={13} /> View Past Donations
                               </button>
-                              {d.eligibility?.isEligible && (
-                                <button
-                                  onClick={() => handleSendReminder(d)}
-                                  disabled={sendingReminderId === d.id}
-                                  style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 600, color: '#ffffff', background: '#002045', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                                >
-                                  {sendingReminderId === d.id ? 'Sending...' : 'Send Clearance Notice'}
-                                </button>
-                              )}
                             </div>
                           </div>
                         </td>

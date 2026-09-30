@@ -1,22 +1,56 @@
+/**
+ * ============================================================================
+ * File: backend/src/db/seed.js
+ * Purpose: Initial Database Seeding & Mock Clinical Data Generator
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Populates a fresh database (PostgreSQL or SQLite fallback) with baseline
+ * records required for development, testing, and clinical demonstration:
+ *
+ * Seeded Entities:
+ * 1. Default Accounts:
+ *    - Administrator (`admin@hospital.med` / `Admin@Hospital2026!`) with TOTP 2FA enabled.
+ *    - Staff Coordinator (`nurse.mary@hospital.med` / `Nurse@Hospital2026!`).
+ * 2. System Settings:
+ *    - Baseline key-value defaults for SMTP, WhatsApp provider, and eligibility intervals.
+ * 3. Clinical Sample Donors & Historical Donations:
+ *    - Diverse set of donors covering all 8 ABO/Rh blood groups.
+ *    - Varied eligibility states: currently eligible, currently in 90-day waiting gap,
+ *      and overdue recall candidates.
+ * ============================================================================
+ */
+
 const bcrypt = require('bcryptjs');
 const { authenticator } = require('otplib');
 const { query, initDatabase } = require('./db');
 const { v4: uuidv4 } = require('crypto');
 
+/**
+ * Generates unique UUID-style identifier strings
+ */
 function genId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'id_' + Math.random().toString(36).substring(2, 11);
 }
 
+/**
+ * Helper to compute future or past dates
+ */
 function addDays(date, days) {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
 }
 
+/**
+ * Converts Date object to 'YYYY-MM-DD' formatted string
+ */
 function formatDate(d) {
   return d.toISOString().split('T')[0];
 }
 
+/**
+ * Master database seeder function
+ */
 async function seed() {
   await initDatabase();
   console.log('🌱 Starting Database Seeding...');

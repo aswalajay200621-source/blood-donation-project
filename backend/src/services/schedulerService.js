@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * File: backend/src/services/schedulerService.js
+ * Purpose: Automated Cron Job Service for Daily 3-Month Eligibility Recall
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Orchestrates the recurring background task that ensures donors are contacted
+ * as soon as their mandatory 90-day clinical waiting period has elapsed.
+ *
+ * Operational Details:
+ * 1. Executes daily at 08:00 AM (cron expression: '0 8 * * *').
+ * 2. Queries the database for donors where `next_eligible_date <= today` and
+ *    no reminder has been dispatched for the current eligibility cycle.
+ * 3. Iterates over eligible donors and triggers WhatsApp & Email dispatches
+ *    via `notificationService`.
+ * 4. Updates donor records with `last_reminder_sent_at` timestamp.
+ * 5. Records an immutable audit log entry detailing the run metrics.
+ * 6. Prevents overlapping concurrent execution with an internal locking flag.
+ * ============================================================================
+ */
+
 const cron = require('node-cron');
 const { query } = require('../db/db');
 const notificationService = require('./notificationService');
@@ -5,16 +26,16 @@ const { recordAudit } = require('../middleware/auditMiddleware');
 
 class SchedulerService {
   constructor() {
-    this.cronTask = null;
-    this.isJobRunning = false;
-    this.lastRunSummary = null;
+    this.cronTask = null;         // Reference to active node-cron task
+    this.isJobRunning = false;     // Mutex lock to prevent overlapping runs
+    this.lastRunSummary = null;   // Metadata summary of the most recent scan
   }
 
   /**
-   * Start the daily automated cron scheduler
+   * Initializes and schedules the daily automated background cron job
    */
   startScheduler() {
-    // Run daily at 08:00 AM ('0 8 * * *')
+    // Schedule job to execute daily at 08:00 AM server time
     this.cronTask = cron.schedule('0 8 * * *', async () => {
       console.log('⏰ [CRON JOB] Starting daily donor 3-month eligibility check...');
       await this.runEligibilityScan();
@@ -24,9 +45,11 @@ class SchedulerService {
   }
 
   /**
-   * Core Scan Logic: Find all donors whose 3-month window has elapsed and dispatch reminders
+   * Core Scan Engine: Finds all donors whose 3-month window has elapsed and sends reminders
+   * Can also be triggered on-demand by administrators via POST /api/settings/trigger-cron
    */
   async runEligibilityScan() {
+    // Guard against concurrent execution if a scan is already running
     if (this.isJobRunning) {
       console.log('⚠️ Eligibility scan already in progress, skipping duplicate run.');
       return { status: 'already_running' };
@@ -37,7 +60,8 @@ class SchedulerService {
     const todayStr = startTime.toISOString().split('T')[0];
 
     try {
-      // Find donors where next_eligible_date <= today AND (last_reminder_sent_at IS NULL OR last_reminder_sent_at < next_eligible_date)
+      // Find donors whose next_eligible_date has arrived AND who haven't received
+      // a reminder yet for this donation cycle
       const res = await query(
         `SELECT * FROM donors
          WHERE next_eligible_date <= $1
@@ -53,6 +77,7 @@ class SchedulerService {
       let failedCount = 0;
       let skippedCount = 0;
 
+      // Sequentially dispatch notifications to prevent overwhelming external APIs
       for (const donor of eligibleDonors) {
         try {
           const result = await notificationService.send3MonthEligibilityReminder(donor);
@@ -69,6 +94,7 @@ class SchedulerService {
         }
       }
 
+      // Aggregate execution metrics
       this.lastRunSummary = {
         runAt: startTime.toISOString(),
         eligibleDonorsFound: eligibleDonors.length,
@@ -78,6 +104,7 @@ class SchedulerService {
         durationMs: Date.now() - startTime.getTime()
       };
 
+      // Record administrative audit trail entry
       await recordAudit({
         userEmail: 'system-cron@hospital.med',
         action: 'CRON_ELIGIBILITY_SCAN',
@@ -92,12 +119,13 @@ class SchedulerService {
       console.error('❌ Eligibility scan error:', err);
       throw err;
     } finally {
+      // Release execution lock
       this.isJobRunning = false;
     }
   }
 
   /**
-   * Get Current Scheduler Status & Last Run Info
+   * Returns current scheduler health, active state, and last execution summary
    */
   getStatus() {
     return {

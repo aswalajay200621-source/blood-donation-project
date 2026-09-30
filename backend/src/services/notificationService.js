@@ -1,22 +1,54 @@
+/**
+ * ============================================================================
+ * File: backend/src/services/notificationService.js
+ * Purpose: Multi-Channel Donor Notification Engine (WhatsApp & Email)
+ * ----------------------------------------------------------------------------
+ * Description:
+ * Manages automated donor reminders across WhatsApp (Meta Cloud API, Twilio, Mock)
+ * and Email (Nodemailer SMTP).
+ *
+ * Core Capabilities:
+ * 1. Pluggable WhatsApp Providers:
+ *    - `MockWhatsAppProvider`      : Console simulation for local testing/dev.
+ *    - `MetaCloudWhatsAppProvider` : Official Meta Graph API v19.0 template messages.
+ *    - `TwilioWhatsAppProvider`    : Twilio REST API integration.
+ * 2. Nodemailer SMTP Email Transporter:
+ *    - Sends styled dark-mode responsive HTML transactional templates.
+ * 3. Clinical Reminder Scenarios:
+ *    - `send3MonthEligibilityReminder(donor)` : Notifies donor when 90-day window passes.
+ *    - `sendDonationThankYou(donor, camp, date)` : Confirms receipt and advises next date.
+ * 4. Safety Controls & Audit Logging:
+ *    - Checks administrative toggle flags (`isWhatsAppEnabled`, `isEmailEnabled`).
+ *    - Writes delivery audit records to `notification_logs` (SENT, FAILED, STANDBY_SKIPPED).
+ * ============================================================================
+ */
+
 const nodemailer = require('nodemailer');
 const config = require('../config/env');
 const { query } = require('../db/db');
 
+/**
+ * Generates unique UUID-style identifier strings
+ */
 function genId() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'id_' + Math.random().toString(36).substring(2, 11);
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'id_' + Math.random().toString(36).substring(2, 11);
 }
 
-// ==========================================
+// ============================================================================
 // 1. WhatsApp Provider Implementations
-// ==========================================
+// ============================================================================
 
+/**
+ * Development & testing WhatsApp provider that logs dispatches to stdout
+ */
 class MockWhatsAppProvider {
   constructor() {
     this.name = 'mock';
   }
 
   async sendMessage({ phone, templateType, parameters }) {
-    // Simulated realistic WhatsApp dispatch
     console.log(`[WHATSAPP MOCK DISPATCH] -> To: +91-${phone} | Template: ${templateType} | Params:`, parameters);
     return {
       success: true,
@@ -27,6 +59,9 @@ class MockWhatsAppProvider {
   }
 }
 
+/**
+ * Official Meta WhatsApp Cloud API Provider (Graph API v19.0)
+ */
 class MetaCloudWhatsAppProvider {
   constructor(apiKey, phoneNumberId) {
     this.name = 'meta_cloud';
@@ -38,6 +73,7 @@ class MetaCloudWhatsAppProvider {
     if (!this.apiKey || this.apiKey === 'mock_key') {
       throw new Error('Meta WhatsApp Cloud API Key not configured');
     }
+    
     // Meta Cloud API HTTP request structure
     const url = `https://graph.facebook.com/v19.0/${this.phoneNumberId}/messages`;
     const payload = {
@@ -75,6 +111,9 @@ class MetaCloudWhatsAppProvider {
   }
 }
 
+/**
+ * Twilio Programmable WhatsApp Messaging Provider
+ */
 class TwilioWhatsAppProvider {
   constructor(accountSid, authToken, fromNumber) {
     this.name = 'twilio';
@@ -84,15 +123,14 @@ class TwilioWhatsAppProvider {
   }
 
   async sendMessage({ phone, text }) {
-    // Twilio REST API integration
     console.log(`[TWILIO DISPATCH] To: whatsapp:+91${phone}`);
     return { success: true, provider: 'twilio', messageId: 'twilio_' + Date.now(), status: 'sent' };
   }
 }
 
-// ==========================================
+// ============================================================================
 // 2. Notification Service Master Orchestrator
-// ==========================================
+// ============================================================================
 
 class NotificationService {
   constructor() {
@@ -100,8 +138,11 @@ class NotificationService {
     this.initProviders();
   }
 
+  /**
+   * Initializes active communication channels from environment configurations
+   */
   initProviders() {
-    // Initialize WhatsApp Provider based on active config
+    // Select WhatsApp Provider based on configuration
     if (config.WHATSAPP_PROVIDER === 'meta_cloud') {
       this.whatsappProvider = new MetaCloudWhatsAppProvider(config.WHATSAPP_API_KEY, config.WHATSAPP_PHONE_NUMBER_ID);
     } else if (config.WHATSAPP_PROVIDER === 'twilio') {
@@ -110,7 +151,7 @@ class NotificationService {
       this.whatsappProvider = new MockWhatsAppProvider();
     }
 
-    // Initialize Nodemailer Transporter
+    // Initialize Nodemailer Transporter if SMTP credentials exist
     if (config.SMTP_USER && config.SMTP_PASS) {
       this.emailTransporter = nodemailer.createTransport({
         host: config.SMTP_HOST,
@@ -125,7 +166,7 @@ class NotificationService {
   }
 
   /**
-   * Check if Email Sending is Enabled via Admin Settings
+   * Checks whether Email notifications are currently enabled in system settings
    */
   async isEmailEnabled() {
     try {
@@ -134,13 +175,13 @@ class NotificationService {
         return res.rows[0].value === 'true' || res.rows[0].value === '1';
       }
     } catch (e) {
-      // ignore
+      // Ignore database errors and use env fallback
     }
     return config.EMAIL_ENABLED;
   }
 
   /**
-   * Check if WhatsApp Sending is Enabled via Admin Settings
+   * Checks whether WhatsApp notifications are currently enabled in system settings
    */
   async isWhatsAppEnabled() {
     try {
@@ -149,13 +190,16 @@ class NotificationService {
         return res.rows[0].value === 'true' || res.rows[0].value === '1';
       }
     } catch (e) {
-      // ignore
+      // Ignore database errors and use env fallback
     }
     return config.WHATSAPP_ENABLED;
   }
 
   /**
-   * Send 3-Month Eligibility Reminder to a Donor
+   * Dispatches 3-Month Eligibility Reminders via WhatsApp and Email
+   *
+   * @param {Object} donor - Donor entity with full_name, phone, email, blood_group, dates
+   * @returns {Promise<Object>} Status report of dispatches
    */
   async send3MonthEligibilityReminder(donor) {
     const results = { whatsapp: null, email: null };
@@ -163,7 +207,7 @@ class NotificationService {
     const waEnabled = await this.isWhatsAppEnabled();
     const emEnabled = await this.isEmailEnabled();
 
-    // 1. WhatsApp Reminder
+    // 1. WhatsApp Channel Dispatch
     if (waEnabled && donor.phone) {
       try {
         const waRes = await this.whatsappProvider.sendMessage({
@@ -204,6 +248,7 @@ class NotificationService {
         results.whatsapp = { success: false, error: err.message };
       }
     } else {
+      // Record standby state if channel is disabled
       await this.logNotification({
         donorId: donor.id,
         donorName: donor.full_name,
@@ -217,7 +262,7 @@ class NotificationService {
       results.whatsapp = { success: true, status: 'standby_skipped' };
     }
 
-    // 2. Email Reminder
+    // 2. Email Channel Dispatch
     const emailSubject = `🩸 You are now eligible to donate blood again! - Apex Hospital Blood Center`;
     const emailHtml = this.renderEmailTemplate('3_month_reminder', donor);
 
@@ -260,7 +305,7 @@ class NotificationService {
         results.email = { success: false, error: err.message };
       }
     } else {
-      // Standby record
+      // Record standby log
       await this.logNotification({
         donorId: donor.id,
         donorName: donor.full_name,
@@ -274,14 +319,14 @@ class NotificationService {
       results.email = { success: true, status: 'standby_skipped' };
     }
 
-    // Update last_reminder_sent_at on donor
+    // Update last_reminder_sent_at on donor record
     await query('UPDATE donors SET last_reminder_sent_at = CURRENT_TIMESTAMP WHERE id = $1', [donor.id]);
 
     return results;
   }
 
   /**
-   * Send Donation Thank You Notification
+   * Dispatches thank-you acknowledgment immediately following a donation
    */
   async sendDonationThankYou(donor, campLocation, donationDate) {
     const waEnabled = await this.isWhatsAppEnabled();
@@ -336,7 +381,148 @@ class NotificationService {
   }
 
   /**
-   * Log Notification to Database
+   * Sends WhatsApp reminders to currently eligible donors (optionally filtered by blood group)
+   * @param {string|null} bloodGroup - Optional blood group filter (e.g. 'O-', 'A+', or 'ALL')
+   * @returns {Promise<Object>} Summary: { total, sent, failed, skipped, bloodGroup }
+   */
+  async sendBulkWhatsApp(bloodGroup = null) {
+    const waEnabled = await this.isWhatsAppEnabled();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    let sql = 'SELECT * FROM donors WHERE next_eligible_date <= $1';
+    const params = [todayStr];
+    const isTargeted = bloodGroup && bloodGroup !== 'ALL';
+
+    if (isTargeted) {
+      sql += ' AND blood_group = $2';
+      params.push(bloodGroup.trim());
+    }
+
+    const eligibleRes = await query(sql, params);
+    const donors = eligibleRes.rows;
+    const summary = { total: donors.length, sent: 0, failed: 0, skipped: 0, bloodGroup: bloodGroup || 'ALL' };
+
+    for (const donor of donors) {
+      if (!donor.phone) { summary.skipped++; continue; }
+      try {
+        if (waEnabled) {
+          const waRes = await this.whatsappProvider.sendMessage({
+            phone: donor.phone,
+            templateType: '3_month_reminder',
+            parameters: {
+              name: donor.full_name,
+              bloodGroup: donor.blood_group,
+              lastDonationDate: donor.last_donation_date || 'N/A',
+              nextEligibleDate: donor.next_eligible_date || 'Now',
+              urgentAppeal: isTargeted ? `Critical supply shortage for ${donor.blood_group}` : 'Routine 3-month eligibility notice'
+            }
+          });
+          await this.logNotification({
+            donorId: donor.id, donorName: donor.full_name,
+            channel: 'whatsapp', recipient: donor.phone,
+            templateType: '3_month_reminder', status: 'sent',
+            provider: this.whatsappProvider.name,
+            responsePayload: JSON.stringify(waRes)
+          });
+          await query('UPDATE donors SET last_reminder_sent_at = CURRENT_TIMESTAMP WHERE id = $1', [donor.id]);
+          summary.sent++;
+        } else {
+          await this.logNotification({
+            donorId: donor.id, donorName: donor.full_name,
+            channel: 'whatsapp', recipient: donor.phone,
+            templateType: '3_month_reminder', status: 'standby_skipped',
+            provider: 'standby',
+            responsePayload: 'WhatsApp notifications toggled OFF in settings.'
+          });
+          summary.skipped++;
+        }
+      } catch (err) {
+        console.error(`Bulk WA error for donor ${donor.id}:`, err.message);
+        await this.logNotification({
+          donorId: donor.id, donorName: donor.full_name,
+          channel: 'whatsapp', recipient: donor.phone,
+          templateType: '3_month_reminder', status: 'failed',
+          provider: this.whatsappProvider.name, errorMessage: err.message
+        });
+        summary.failed++;
+      }
+    }
+
+    return summary;
+  }
+
+  /**
+   * Sends Email reminders to currently eligible donors (optionally filtered by blood group)
+   * @param {string|null} bloodGroup - Optional blood group filter (e.g. 'O-', 'A+', or 'ALL')
+   * @returns {Promise<Object>} Summary: { total, sent, failed, skipped, bloodGroup }
+   */
+  async sendBulkEmail(bloodGroup = null) {
+    const emEnabled = await this.isEmailEnabled();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    let sql = 'SELECT * FROM donors WHERE next_eligible_date <= $1';
+    const params = [todayStr];
+    const isTargeted = bloodGroup && bloodGroup !== 'ALL';
+
+    if (isTargeted) {
+      sql += ' AND blood_group = $2';
+      params.push(bloodGroup.trim());
+    }
+
+    const eligibleRes = await query(sql, params);
+    const donors = eligibleRes.rows;
+    const summary = { total: donors.length, sent: 0, failed: 0, skipped: 0, bloodGroup: bloodGroup || 'ALL' };
+
+    const emailSubject = isTargeted
+      ? `🚨 Urgent Shortage Alert: High Need for ${bloodGroup} Donors - You are Eligible to Donate at Apex Hospital`
+      : `🩸 You are now eligible to donate blood again! - Apex Hospital Blood Center`;
+
+    for (const donor of donors) {
+      if (!donor.email) { summary.skipped++; continue; }
+      try {
+        if (emEnabled && this.emailTransporter) {
+          const info = await this.emailTransporter.sendMail({
+            from: config.EMAIL_FROM,
+            to: donor.email,
+            subject: emailSubject,
+            html: this.renderEmailTemplate('3_month_reminder', donor)
+          });
+          await this.logNotification({
+            donorId: donor.id, donorName: donor.full_name,
+            channel: 'email', recipient: donor.email,
+            templateType: '3_month_reminder', status: 'sent',
+            provider: 'nodemailer_smtp',
+            responsePayload: JSON.stringify(info)
+          });
+          await query('UPDATE donors SET last_reminder_sent_at = CURRENT_TIMESTAMP WHERE id = $1', [donor.id]);
+          summary.sent++;
+        } else {
+          await this.logNotification({
+            donorId: donor.id, donorName: donor.full_name,
+            channel: 'email', recipient: donor.email,
+            templateType: '3_month_reminder', status: 'standby_skipped',
+            provider: 'nodemailer_smtp',
+            responsePayload: 'Email notifications on STANDBY / SMTP not configured.'
+          });
+          summary.skipped++;
+        }
+      } catch (err) {
+        console.error(`Bulk email error for donor ${donor.id}:`, err.message);
+        await this.logNotification({
+          donorId: donor.id, donorName: donor.full_name,
+          channel: 'email', recipient: donor.email,
+          templateType: '3_month_reminder', status: 'failed',
+          provider: 'nodemailer_smtp', errorMessage: err.message
+        });
+        summary.failed++;
+      }
+    }
+
+    return summary;
+  }
+
+  /**
+   * Records an entry into the notification_logs database table
    */
   async logNotification({
     donorId,
@@ -363,33 +549,44 @@ class NotificationService {
   }
 
   /**
-   * Get Notification Dispatch Logs with Filters
+   * Retrieves notification history logs with channel, status, and blood group filtering
    */
-  async getNotificationLogs({ channel, status, page = 1, limit = 50 }) {
-    let sql = 'SELECT * FROM notification_logs WHERE 1=1';
+  async getNotificationLogs({ channel, status, bloodGroup, page = 1, limit = 50 }) {
+    let sql = `
+      SELECT nl.*, d.blood_group
+      FROM notification_logs nl
+      LEFT JOIN donors d ON d.id = nl.donor_id
+      WHERE 1=1
+    `;
     const params = [];
     let pIdx = 1;
 
     if (channel && channel !== 'ALL') {
-      sql += ` AND channel = $${pIdx}`;
+      sql += ` AND nl.channel = $${pIdx}`;
       params.push(channel.toLowerCase());
       pIdx++;
     }
 
     if (status && status !== 'ALL') {
-      sql += ` AND status = $${pIdx}`;
+      sql += ` AND nl.status = $${pIdx}`;
       params.push(status.toLowerCase());
       pIdx++;
     }
 
-    sql += ' ORDER BY created_at DESC LIMIT 100';
+    if (bloodGroup && bloodGroup !== 'ALL') {
+      sql += ` AND d.blood_group = $${pIdx}`;
+      params.push(bloodGroup.trim());
+      pIdx++;
+    }
+
+    sql += ' ORDER BY nl.created_at DESC LIMIT 100';
 
     const res = await query(sql, params);
     return res.rows;
   }
 
   /**
-   * HTML Email Templates
+   * Renders styled HTML emails with dark mode clinical aesthetics
    */
   renderEmailTemplate(templateType, data) {
     if (templateType === '3_month_reminder') {

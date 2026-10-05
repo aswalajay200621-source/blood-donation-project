@@ -19,6 +19,7 @@
 
 import React, { useState } from 'react';
 import { api } from '../services/api';
+import { sendDonorReminderEmail } from '../services/emailService';
 import {
   X,
   User,
@@ -48,9 +49,23 @@ export default function DonorDetailsModal({ donor, onClose, onRefresh }) {
   const handleSendReminder = async () => {
     try {
       setSendingReminder(true);
+      // Dispatch backend logs & triggers
       const res = await api.donors.sendReminder(donor.id);
+      
+      // Dispatch live EmailJS reminder if donor has email
+      let emailStatusText = '';
+      if (donor.email) {
+        const emailRes = await sendDonorReminderEmail(donor);
+        if (emailRes.success) {
+          emailStatusText = ` & Live Reminder Email sent to ${donor.email}`;
+        }
+      }
+
       if (res.success) {
-        setReminderMessage({ type: 'SUCCESS', text: `Automated WhatsApp & Email reminders dispatched for ${donor.full_name}!` });
+        setReminderMessage({
+          type: 'SUCCESS',
+          text: `Recall notification logged${emailStatusText} for ${donor.full_name}!`
+        });
         if (onRefresh) onRefresh();
       }
     } catch (err) {

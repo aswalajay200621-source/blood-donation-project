@@ -21,6 +21,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { sendDonorReminderEmail } from '../services/emailService';
 import {
   Mail,
   MessageSquare,
@@ -53,6 +54,7 @@ export default function NotificationsView() {
   // Bulk dispatch state
   const [bulkSendingWa, setBulkSendingWa] = useState(false);
   const [bulkSendingEmail, setBulkSendingEmail] = useState(false);
+  const [bulkEmailMsg, setBulkEmailMsg] = useState(null);
 
   const isCritical = CRITICAL_BLOOD_GROUPS.includes(selectedBloodGroup);
 
@@ -122,11 +124,30 @@ export default function NotificationsView() {
   const handleBulkEmail = async () => {
     try {
       setBulkSendingEmail(true);
+      setBulkEmailMsg(null);
       await api.notifications.bulkEmail(selectedBloodGroup);
+
+      // Dispatch live emails to eligible donors via EmailJS
+      const donorRes = await api.donors.list({
+        eligibilityStatus: 'eligible',
+        bloodGroup: selectedBloodGroup
+      });
+      const eligible = donorRes.donors || [];
+      let sentCount = 0;
+      // Send to eligible donors with email (capped to first 5 per click to avoid hitting monthly limits)
+      for (const d of eligible.slice(0, 5)) {
+        if (d.email) {
+          const r = await sendDonorReminderEmail(d);
+          if (r.success) sentCount++;
+        }
+      }
+
+      setBulkEmailMsg(`✅ Dispatched live 3-month reminder emails to ${sentCount} donor(s) via EmailJS!`);
       fetchLogs();
       fetchEligibleCount();
     } catch (err) {
       console.error('Bulk email dispatch error:', err.message);
+      setBulkEmailMsg(`❌ Error sending reminders: ${err.message}`);
     } finally {
       setBulkSendingEmail(false);
     }
@@ -222,6 +243,29 @@ export default function NotificationsView() {
           </button>
         </div>
       </div>
+
+      {bulkEmailMsg && (
+        <div style={{
+          padding: '12px 16px',
+          background: bulkEmailMsg.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
+          border: `1px solid ${bulkEmailMsg.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`,
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: 600,
+          color: bulkEmailMsg.startsWith('✅') ? '#166534' : '#991b1b',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <span>{bulkEmailMsg}</span>
+          <button
+            onClick={() => setBulkEmailMsg(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'inherit' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Target Blood Group Selection & Critical Shortage Alert Bar */}
       <div className="classic-card" style={{

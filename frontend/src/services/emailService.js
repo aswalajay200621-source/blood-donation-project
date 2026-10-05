@@ -1,7 +1,8 @@
 import emailjs from '@emailjs/browser';
 
 const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_eblorag';
-const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_uts7pu3';
+const OTP_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_uts7pu3';
+const REMINDER_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_REMINDER_TEMPLATE_ID || 'template_pfqixi4';
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'FnzjkIi6CBXcYl12d';
 const TARGET_EMAIL = import.meta.env.VITE_EMAILJS_TARGET_EMAIL || 'aswalajay200621@gmail.com';
 
@@ -21,7 +22,7 @@ export async function sendOtpEmail(otpCode, recipientEmail = TARGET_EMAIL) {
 
     const response = await emailjs.send(
       SERVICE_ID,
-      TEMPLATE_ID,
+      OTP_TEMPLATE_ID,
       templateParams,
       PUBLIC_KEY
     );
@@ -30,6 +31,39 @@ export async function sendOtpEmail(otpCode, recipientEmail = TARGET_EMAIL) {
     return { success: true, response };
   } catch (error) {
     console.error('❌ Failed to send 2FA Email via EmailJS:', error);
+    return {
+      success: false,
+      error: error?.text || error?.message || 'Email delivery failed'
+    };
+  }
+}
+
+/**
+ * Sends a 3-month eligibility recall reminder to a donor using EmailJS
+ * @param {Object} donor Donor object with full_name, email, blood_group, last_donation_date
+ */
+export async function sendDonorReminderEmail(donor) {
+  try {
+    const toEmail = donor.email || TARGET_EMAIL;
+    const templateParams = {
+      donor_name: donor.full_name || 'Valued Donor',
+      blood_group: donor.blood_group || 'Unknown',
+      last_donation_date: donor.last_donation_date ? new Date(donor.last_donation_date).toLocaleDateString() : 'recent donation',
+      to_email: toEmail,
+      email: toEmail
+    };
+
+    const response = await emailjs.send(
+      SERVICE_ID,
+      REMINDER_TEMPLATE_ID,
+      templateParams,
+      PUBLIC_KEY
+    );
+
+    console.log(`✅ 3-month reminder sent to ${donor.full_name} (${toEmail}) via EmailJS:`, response.status);
+    return { success: true, response };
+  } catch (error) {
+    console.error(`❌ Failed to send reminder email to ${donor.full_name}:`, error);
     return {
       success: false,
       error: error?.text || error?.message || 'Email delivery failed'

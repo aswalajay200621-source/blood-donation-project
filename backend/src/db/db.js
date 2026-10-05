@@ -70,7 +70,7 @@ async function initDatabase() {
   try {
     const testPool = new Pool({
       connectionString: config.DATABASE_URL,
-      connectionTimeoutMillis: 3000,
+      connectionTimeoutMillis: 8000,
       max: 10
     });
 
@@ -81,12 +81,18 @@ async function initDatabase() {
     activeEngine = 'postgres';
     console.log('✅ Connected to PostgreSQL database successfully.');
 
-    // Run PostgreSQL schema file to create/migrate tables
-    const schemaPath = path.join(__dirname, '../../../database/schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-      await pgPool.query(schemaSql);
-      console.log('✅ PostgreSQL Schema initialized.');
+    // Run schema migrations only in non-serverless environments where the filesystem is available
+    // In Vercel/serverless, schema is already applied via Supabase dashboard or seed script
+    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+    if (!isServerless) {
+      const schemaPath = path.join(__dirname, '../../../database/schema.sql');
+      if (fs.existsSync(schemaPath)) {
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        await pgPool.query(schemaSql);
+        console.log('✅ PostgreSQL Schema initialized.');
+      }
+    } else {
+      console.log('✅ Serverless environment detected — skipping filesystem schema migration.');
     }
     return;
   } catch (pgError) {

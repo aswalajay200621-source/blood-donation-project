@@ -125,7 +125,7 @@ npm run dev
 ```
 
 #### Default Seed Credentials:
-- **Chief Medical Officer (Admin):** `admin@hospital.med` / `Admin@Hospital2026!`
+- **Chief Medical Officer (Admin):** `admin@hospital.med` / `admin123`
 - **Camp Coordinator (Staff):** `nurse.mary@hospital.med` / `Nurse@Hospital2026!`
 - *(Demo TOTP key is pre-seeded; also supports QR code enrollment on new accounts)*
 

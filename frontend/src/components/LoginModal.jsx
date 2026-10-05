@@ -237,7 +237,7 @@ export default function LoginModal() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => fillDemo('admin@hospital.med', 'Admin@Hospital2026!')}
+                  onClick={() => fillDemo('admin@hospital.med', 'admin123')}
                   className="btn btn-secondary btn-sm"
                   style={{ justifyContent: 'flex-start', textAlign: 'left', background: '#f8fafc' }}
                 >

@@ -9,7 +9,7 @@
  *
  * Seeded Entities:
  * 1. Default Accounts:
- *    - Administrator (`admin@hospital.med` / `Admin@Hospital2026!`) with TOTP 2FA enabled.
+ *    - Administrator (`admin@hospital.med` / `admin123`) with TOTP 2FA enabled.
  *    - Staff Coordinator (`nurse.mary@hospital.med` / `Nurse@Hospital2026!`).
  * 2. System Settings:
  *    - Baseline key-value defaults for SMTP, WhatsApp provider, and eligibility intervals.
@@ -56,7 +56,7 @@ async function seed() {
   console.log('🌱 Starting Database Seeding...');
 
   // 1. Seed Users
-  const adminPasswordHash = await bcrypt.hash('Admin@Hospital2026!', 10);
+  const adminPasswordHash = await bcrypt.hash('admin123', 10);
   const staffPasswordHash = await bcrypt.hash('Nurse@Hospital2026!', 10);
 
   // Default TOTP secret for admin demo: 'JBSWY3DPEHPK3PXP' (standard test base32 key)
@@ -74,7 +74,7 @@ async function seed() {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [adminId, 'admin@hospital.med', 'Dr. Aris Thorne (Chief Medical Officer)', adminPasswordHash, 'admin', adminSecret, 1, 1]
     );
-    console.log('✅ Created Admin user: admin@hospital.med / Admin@Hospital2026!');
+    console.log('✅ Created Admin user: admin@hospital.med / admin123');
   }
 
   const existingStaff = await query('SELECT * FROM users WHERE email = $1', ['nurse.mary@hospital.med']);

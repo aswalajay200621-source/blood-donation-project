@@ -22,8 +22,8 @@
  * ============================================================================
  */
 
-// Base endpoint prefix routed through Vite's local reverse proxy to Express (port 5000)
-const API_BASE = '/api';
+// Base endpoint prefix: uses VITE_API_BASE_URL if configured, otherwise falls back to /api
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * Retrieves the currently saved JWT Access Token from browser localStorage.

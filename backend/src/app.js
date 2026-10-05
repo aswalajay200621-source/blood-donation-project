@@ -73,7 +73,11 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no Origin header (e.g. server-to-server, curl, mobile)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      if (
+        allowedOrigins.indexOf(origin) !== -1 ||
+        origin.endsWith('.vercel.app') ||
+        process.env.NODE_ENV === 'development'
+      ) {
         return callback(null, true);
       }
       return callback(new Error('CORS blocked: Origin not allowed by hospital security policy.'), false);

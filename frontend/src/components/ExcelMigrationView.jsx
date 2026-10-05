@@ -33,7 +33,7 @@ export default function ExcelMigrationView({ onNavigate }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [parsing, setParsing] = useState(false);
   const [committing, setCommitting] = useState(false);
-  
+
   // Validation results and import report state
   const [previewData, setPreviewData] = useState(null);
   const [importReport, setImportReport] = useState(null);

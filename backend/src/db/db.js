@@ -25,10 +25,10 @@
  */
 
 const { Pool } = require('pg');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
+let sqlite3 = null;
 
 // Active database connection objects (only one will be used at runtime)
 let pgPool = null;
@@ -99,6 +99,12 @@ async function initDatabase() {
 
   // === Attempt 2: Initialize SQLite Fallback ===
   return new Promise((resolve, reject) => {
+    try {
+      if (!sqlite3) sqlite3 = require('sqlite3').verbose();
+    } catch (reqErr) {
+      console.error('❌ SQLite3 module not available in this environment:', reqErr.message);
+      return reject(reqErr);
+    }
     sqliteDb = new sqlite3.Database(sqliteFilePath, async (err) => {
       if (err) {
         console.error('❌ Could not initialize SQLite fallback:', err);
@@ -220,7 +226,14 @@ async function initDatabase() {
  */
 async function query(sqlText, params = []) {
   // Route to PostgreSQL if active
-  if (activeEngine === 'postgres' && pgPool) {
+  if (activeEngine === 'postgres') {
+    if (!pgPool) {
+      pgPool = new Pool({
+        connectionString: config.DATABASE_URL,
+        connectionTimeoutMillis: 5000,
+        max: 10
+      });
+    }
     const res = await pgPool.query(sqlText, params);
     return res;
   }

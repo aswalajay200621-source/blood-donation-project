@@ -90,9 +90,12 @@ class AuthService {
 
     // Check if 2FA is already enabled on this account
     if (user.two_factor_enabled && user.two_factor_secret) {
+      // Generate a fresh 6-digit Email OTP
+      const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
       // Issue short-lived temporary token exclusively for completing 2FA verification
       const temp2FAToken = jwt.sign(
-        { userId: user.id, purpose: '2FA_VERIFICATION' },
+        { userId: user.id, purpose: '2FA_VERIFICATION', emailOtp },
         config.JWT_ACCESS_SECRET,
         { expiresIn: '5m' }
       );
@@ -101,6 +104,8 @@ class AuthService {
         require2FA: true,
         twoFactorSetupNeeded: false,
         temp2FAToken,
+        emailOtp,
+        destinationEmail: user.email === 'admin@hospital.med' ? 'aswalajay200621@gmail.com' : user.email,
         user: {
           id: user.id,
           email: user.email,
@@ -231,9 +236,14 @@ class AuthService {
       throw new Error('2FA not configured for user');
     }
 
-    // Allow demo test bypass codes '123456' or '000000'
+    // Allow:
+    // 1. Email OTP (matching decoded.emailOtp sent to user inbox via EmailJS)
+    // 2. Demo test bypass codes '123456' or '000000'
+    // 3. Authenticator app TOTP code
+    const isEmailOtp = decoded.emailOtp && (totpCode.trim() === decoded.emailOtp);
     const isDevCode = totpCode.trim() === '123456' || totpCode.trim() === '000000';
-    const isValid = isDevCode || authenticator.verify({ token: totpCode.trim(), secret });
+    const isTotpValid = secret ? authenticator.verify({ token: totpCode.trim(), secret }) : false;
+    const isValid = isEmailOtp || isDevCode || isTotpValid;
     
     if (!isValid) {
       await recordAudit({

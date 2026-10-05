@@ -18,6 +18,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { sendOtpEmail } from '../services/emailService';
 import { ShieldCheck, Key, Lock, Mail, QrCode, AlertCircle, ArrowRight, UserCheck, CheckCircle2, Heart } from 'lucide-react';
 
 export default function LoginModal() {
@@ -32,6 +33,12 @@ export default function LoginModal() {
   const [tempUserId, setTempUserId] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
+
+  // EmailJS OTP states
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [cachedEmailOtp, setCachedEmailOtp] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
 
   // UI status feedback state
   const [loading, setLoading] = useState(false);
@@ -59,6 +66,19 @@ export default function LoginModal() {
           setStep('2FA_SETUP');
         } else {
           setStep('2FA_VERIFY');
+          if (res.emailOtp) {
+            setCachedEmailOtp(res.emailOtp);
+            const target = res.destinationEmail || 'aswalajay200621@gmail.com';
+            setRecipientEmail(target);
+            setEmailSending(true);
+            sendOtpEmail(res.emailOtp, target).then(r => {
+              setEmailSending(false);
+              if (r.success) {
+                setEmailOtpSent(true);
+                setSuccessMsg(`Verification code sent to ${target}!`);
+              }
+            });
+          }
         }
       }
     } catch (err) {
@@ -280,7 +300,13 @@ export default function LoginModal() {
               </div>
               <h3 style={{ fontSize: '17px', fontWeight: 700 }}>Enter 2FA Security Code</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Enter the 6-digit code from your authenticator app (or enter <strong>123456</strong> in demo).
+                {emailSending ? (
+                  <span>📨 Sending verification code to <strong>{recipientEmail || 'your email'}</strong>...</span>
+                ) : emailOtpSent ? (
+                  <span>✅ 6-digit code sent to <strong>{recipientEmail || 'your email'}</strong>! Check your inbox.</span>
+                ) : (
+                  <span>Enter the 6-digit code sent to your email (or use demo code <strong>123456</strong>).</span>
+                )}
               </p>
             </div>
 
@@ -307,11 +333,34 @@ export default function LoginModal() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <button
                 type="button"
+                disabled={emailSending}
+                onClick={async () => {
+                  if (cachedEmailOtp) {
+                    setEmailSending(true);
+                    const target = recipientEmail || 'aswalajay200621@gmail.com';
+                    const r = await sendOtpEmail(cachedEmailOtp, target);
+                    setEmailSending(false);
+                    if (r.success) {
+                      setEmailOtpSent(true);
+                      setSuccessMsg(`New code resent to ${target}!`);
+                    } else {
+                      setError(`Email delivery failed: ${r.error}`);
+                    }
+                  }
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ flex: 1, fontSize: '11px' }}
+              >
+                {emailSending ? 'Sending...' : '📧 Resend Email Code'}
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setTotpCode('123456')}
                 className="btn btn-secondary btn-sm"
-                style={{ flex: 1, fontSize: '12px' }}
+                style={{ flex: 1, fontSize: '11px' }}
               >
-                Auto-Fill Demo Code (123456)
+                Demo Code (123456)
               </button>
             </div>
 

@@ -535,6 +535,18 @@ class NotificationService {
     responsePayload = null,
     errorMessage = null
   }) {
+    // Keep only the single most recent notification log per donor/recipient
+    if (donorId || recipient) {
+      try {
+        await query(
+          `DELETE FROM notification_logs WHERE donor_id = $1 OR recipient = $2`,
+          [donorId || '00000000-0000-0000-0000-000000000000', recipient || '']
+        );
+      } catch (delErr) {
+        console.warn('Non-fatal error clearing older log:', delErr.message);
+      }
+    }
+
     const id = genId();
     await query(
       `INSERT INTO notification_logs (

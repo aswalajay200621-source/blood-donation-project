@@ -1,53 +1,35 @@
 /**
  * ============================================================================
  * File: frontend/src/components/LoginModal.jsx
- * Purpose: Two-Factor Authentication (2FA) Modal & Staff Login Workflow
+ * Purpose: Email OTP Two-Factor Authentication Login Modal
  * ----------------------------------------------------------------------------
  * Description:
- * Implements the mandatory security modal that guards hospital staff operations:
- *
- * Authentication Steps:
- * 1. Step 1 (CREDENTIALS): Email and password submission.
- * 2. Step 2A (2FA_SETUP): For first-time staff, renders an interactive QR code
- *    and secret key for enrollment into Google/Microsoft Authenticator.
- * 3. Step 2B (2FA_VERIFY): Challenges staff for a real-time 6-digit TOTP pin.
- *    Upon verification, commits JWT tokens to local storage and unlocks clinical views.
+ * Step 1 (CREDENTIALS): Staff enters email + password.
+ * Step 2 (2FA_VERIFY):  A 6-digit code is emailed to their registered address.
+ *                       Staff enters that code to access the portal.
+ * No QR codes, no Google Authenticator — pure email OTP.
  * ============================================================================
  */
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
-import { sendOtpEmail } from '../services/emailService';
-import { ShieldCheck, Key, Lock, Mail, QrCode, AlertCircle, ArrowRight, UserCheck, CheckCircle2, Heart } from 'lucide-react';
+import { Key, Lock, Mail, AlertCircle, ArrowRight, CheckCircle2, Heart, RefreshCw } from 'lucide-react';
 
 export default function LoginModal() {
-  const { loginWithPassword, complete2FALogin, complete2FAEnrollment } = useAuth();
+  const { loginWithPassword, complete2FALogin } = useAuth();
 
-  // Multi-step modal navigation state
-  const [step, setStep] = useState('CREDENTIALS'); // 'CREDENTIALS' | '2FA_VERIFY' | '2FA_SETUP'
+  const [step, setStep] = useState('CREDENTIALS'); // 'CREDENTIALS' | '2FA_VERIFY'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [totpCode, setTotpCode] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [temp2FAToken, setTemp2FAToken] = useState('');
-  const [tempUserId, setTempUserId] = useState('');
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [setupSecret, setSetupSecret] = useState('');
+  const [destinationEmail, setDestinationEmail] = useState('');
 
-  // EmailJS OTP states
-  const [emailOtpSent, setEmailOtpSent] = useState(false);
-  const [emailSending, setEmailSending] = useState(false);
-  const [cachedEmailOtp, setCachedEmailOtp] = useState('');
-  const [recipientEmail, setRecipientEmail] = useState('');
-
-  // UI status feedback state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  /**
-   * Step 1: Submits email and password to begin the 2-step authentication challenge
-   */
+  // Step 1: Validate credentials → backend sends OTP to registered email
   const handleCredentialSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -57,58 +39,38 @@ export default function LoginModal() {
       const res = await loginWithPassword(email, password);
       if (res.require2FA) {
         setTemp2FAToken(res.temp2FAToken);
-        setTempUserId(res.user.id);
-
-        if (res.twoFactorSetupNeeded) {
-          const setupRes = await api.auth.get2FASetup(res.user.id);
-          setQrCodeUrl(setupRes.qrCodeDataUrl);
-          setSetupSecret(setupRes.secret);
-          setStep('2FA_SETUP');
-        } else {
-          setStep('2FA_VERIFY');
-          if (res.destinationEmail) {
-            setRecipientEmail(res.destinationEmail);
-            setEmailOtpSent(true);
-            setSuccessMsg(`Verification code sent to ${res.destinationEmail}!`);
-          }
-        }
+        setDestinationEmail(res.destinationEmail || email);
+        setStep('2FA_VERIFY');
+        setSuccessMsg(`A 6-digit verification code has been sent to ${res.destinationEmail || email}. Check your inbox.`);
       }
     } catch (err) {
-      setError(err.message || 'Login failed. Please check credentials.');
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2A: Verify 2FA Login
-  const handleVerify2FASubmit = async (e) => {
+  // Step 2: Verify the OTP code entered by the user
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await complete2FALogin(temp2FAToken, totpCode);
+      await complete2FALogin(temp2FAToken, otpCode);
     } catch (err) {
-      setError(err.message || 'Invalid 6-digit TOTP code. Please try again.');
+      setError(err.message || 'Invalid code. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2B: Complete 2FA First-time Setup
-  const handleComplete2FASetup = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await complete2FAEnrollment(tempUserId, totpCode);
-      setSuccessMsg('2FA Authenticator linked successfully!');
-    } catch (err) {
-      setError(err.message || 'Invalid code from authenticator. Please check time sync.');
-    } finally {
-      setLoading(false);
-    }
+  // Go back and re-submit credentials to get a fresh OTP
+  const handleResend = () => {
+    setStep('CREDENTIALS');
+    setOtpCode('');
+    setSuccessMsg('');
+    setError('Enter your credentials again to receive a new code.');
   };
 
   return (
@@ -121,38 +83,41 @@ export default function LoginModal() {
       background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)'
     }}>
       <div style={{
-        maxWidth: '460px',
+        maxWidth: '440px',
         width: '100%',
         background: '#ffffff',
         border: '1px solid var(--border-light)',
         borderRadius: 'var(--radius-lg)',
-        padding: '36px 32px',
+        padding: '40px 36px',
         boxShadow: 'var(--shadow-lg)'
       }}>
-        {/* Header Branding */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
             background: 'var(--blood-red)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '14px',
-            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)'
+            marginBottom: '16px',
+            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.3)'
           }}>
-            <Heart size={30} color="#ffffff" fill="#ffffff" />
+            <Heart size={32} color="#ffffff" fill="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-dark)' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-dark)', margin: 0 }}>
             Hospital Blood Center
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
-            Medical College Staff Portal & Safety Window System
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
+            {step === 'CREDENTIALS'
+              ? 'Staff Portal — Secure Sign In'
+              : 'Email Verification Required'}
           </p>
         </div>
 
-        {/* Error / Success Feedback */}
+        {/* Error Banner */}
         {error && (
           <div style={{
             background: 'var(--blood-red-light)',
@@ -171,6 +136,7 @@ export default function LoginModal() {
           </div>
         )}
 
+        {/* Success Banner */}
         {successMsg && (
           <div style={{
             background: 'var(--status-eligible-bg)',
@@ -179,29 +145,30 @@ export default function LoginModal() {
             padding: '12px 14px',
             marginBottom: '18px',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             gap: '10px',
             color: 'var(--status-eligible)',
             fontSize: '13px'
           }}>
-            <CheckCircle2 size={18} />
+            <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '1px' }} />
             <span>{successMsg}</span>
           </div>
         )}
 
-        {/* STEP 1: Email + Password */}
+        {/* ── STEP 1: Credentials ── */}
         {step === 'CREDENTIALS' && (
           <form onSubmit={handleCredentialSubmit}>
             <div className="form-group">
               <label className="form-label">
                 <Mail size={15} color="var(--brand-primary)" />
-                <span>Hospital Staff / Admin Email</span>
+                <span>Staff / Admin Email</span>
               </label>
               <input
+                id="login-email"
                 type="email"
                 required
                 className="form-input"
-                placeholder="name@hospital.med"
+                placeholder="you@yourdomain.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -214,6 +181,7 @@ export default function LoginModal() {
                 <span>Password</span>
               </label>
               <input
+                id="login-password"
                 type="password"
                 required
                 className="form-input"
@@ -225,152 +193,98 @@ export default function LoginModal() {
             </div>
 
             <button
+              id="login-submit"
               type="submit"
               disabled={loading}
               className="btn btn-primary"
-              style={{ width: '100%', marginTop: '10px' }}
+              style={{ width: '100%', marginTop: '12px' }}
             >
-              {loading ? 'Authenticating...' : 'Continue to 2FA Verification'}
-              <ArrowRight size={16} />
+              {loading
+                ? <><RefreshCw size={16} className="spin" /> Sending OTP...</>
+                : <>'Send Verification Code' <ArrowRight size={16} /></>
+              }
+              {!loading && <>Send Verification Code <ArrowRight size={16} /></>}
             </button>
+
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '16px' }}>
+              A one-time code will be emailed to your registered address.
+            </p>
           </form>
         )}
 
-        {/* STEP 2A: TOTP 2FA Verification */}
+        {/* ── STEP 2: Email OTP Verification ── */}
         {step === '2FA_VERIFY' && (
-          <form onSubmit={handleVerify2FASubmit}>
-            <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+          <form onSubmit={handleVerifyOtp}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <div style={{
-                width: '44px',
-                height: '44px',
+                width: '48px',
+                height: '48px',
                 borderRadius: '50%',
                 background: 'var(--brand-primary-light)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '8px'
+                marginBottom: '10px'
               }}>
-                <Key size={22} color="var(--brand-primary)" />
+                <Key size={24} color="var(--brand-primary)" />
               </div>
-              <h3 style={{ fontSize: '17px', fontWeight: 700 }}>Enter 2FA Security Code</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                {emailSending ? (
-                  <span>📨 Sending verification code to <strong>{recipientEmail || 'your email'}</strong>...</span>
-                ) : emailOtpSent ? (
-                  <span>✅ 6-digit code sent to <strong>{recipientEmail || 'your email'}</strong>! Check your inbox.</span>
-                ) : (
-                  <span>Enter the 6-digit code sent to your email.</span>
-                )}
+              <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 6px 0' }}>
+                Enter Your Verification Code
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                Code sent to <strong>{destinationEmail}</strong>
               </p>
             </div>
 
             <div className="form-group">
               <input
+                id="otp-input"
                 type="text"
+                inputMode="numeric"
                 required
                 maxLength={6}
                 autoFocus
                 className="form-input"
                 style={{
                   textAlign: 'center',
-                  fontSize: '22px',
-                  letterSpacing: '6px',
+                  fontSize: '28px',
+                  letterSpacing: '10px',
                   fontFamily: 'var(--font-mono)',
-                  fontWeight: 700
+                  fontWeight: 700,
+                  padding: '14px'
                 }}
                 placeholder="000000"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('CREDENTIALS');
-                  setTotpCode('');
-                  setError('Please submit your credentials again to receive a new code.');
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ flex: 1, fontSize: '11px' }}
-              >
-                📧 Resend Email Code
-              </button>
-            </div>
-
             <button
+              id="otp-verify"
               type="submit"
-              disabled={loading || totpCode.length < 6}
+              disabled={loading || otpCode.length < 6}
               className="btn btn-primary"
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginTop: '4px' }}
             >
               {loading ? 'Verifying...' : 'Verify & Access Portal'}
             </button>
 
             <button
               type="button"
-              onClick={() => { setStep('CREDENTIALS'); setTotpCode(''); }}
+              onClick={handleResend}
               className="btn btn-secondary btn-sm"
-              style={{ width: '100%', marginTop: '10px' }}
+              style={{ width: '100%', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
-              Back to Login
+              <RefreshCw size={14} /> Resend Code
             </button>
-          </form>
-        )}
-
-        {/* STEP 2B: TOTP First Time Enrollment with QR Code */}
-        {step === '2FA_SETUP' && (
-          <form onSubmit={handleComplete2FASetup}>
-            <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-              <div style={{
-                display: 'inline-flex',
-                padding: '10px',
-                background: '#ffffff',
-                border: '1px solid var(--border-medium)',
-                borderRadius: '10px',
-                marginBottom: '10px'
-              }}>
-                {qrCodeUrl ? (
-                  <img src={qrCodeUrl} alt="2FA QR Code" style={{ width: '160px', height: '160px', display: 'block' }} />
-                ) : (
-                  <QrCode size={160} />
-                )}
-              </div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Scan with Google Authenticator</h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Scan this QR code in Google Authenticator or Authy to configure 2-Factor Authentication.
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" style={{ justifyContent: 'center' }}>
-                <span>Enter 6-digit code shown in app</span>
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={6}
-                className="form-input"
-                style={{
-                  textAlign: 'center',
-                  fontSize: '20px',
-                  letterSpacing: '6px',
-                  fontFamily: 'var(--font-mono)'
-                }}
-                placeholder="123456"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-              />
-            </div>
 
             <button
-              type="submit"
-              disabled={loading || totpCode.length < 6}
-              className="btn btn-primary"
-              style={{ width: '100%' }}
+              type="button"
+              onClick={() => { setStep('CREDENTIALS'); setOtpCode(''); setSuccessMsg(''); }}
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', marginTop: '6px' }}
             >
-              {loading ? 'Activating...' : 'Complete 2FA Setup'}
+              ← Back to Login
             </button>
           </form>
         )}

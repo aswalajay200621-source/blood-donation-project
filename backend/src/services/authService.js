@@ -1,47 +1,34 @@
 /**
  * ============================================================================
  * File: backend/src/services/authService.js
- * Purpose: Authentication, Password Hashing, TOTP 2FA & JWT Token Lifecycle Service
+ * Purpose: Authentication, Email OTP 2FA & JWT Token Lifecycle Service
  * ----------------------------------------------------------------------------
  * Description:
- * Encapsulates all security business logic for user authentication:
+ * Encapsulates all security business logic for user authentication.
  *
  * Core Workflows:
  * 1. Password Verification: Uses bcrypt to securely compare hashes.
- * 2. Two-Factor Authentication (TOTP):
- *    - Uses `otplib` to generate RFC 6238 compliant base32 secrets.
- *    - Produces `otpauth://` URIs and PNG Data URLs via `qrcode` for Google/Microsoft Authenticator.
- *    - Validates 6-digit TOTP codes with a 1-step window (clock-drift tolerance).
- * 3. Two-Step Login Challenge:
- *    - Issues short-lived (5-min) temporary tokens for 2FA validation challenges.
- * 4. Token Issuance & Refresh Rotation:
- *    - Issues 15-minute access tokens and 7-day refresh tokens signed with HMAC SHA-256.
- *    - Validates refresh tokens against database user records.
- * 5. Audit Logging:
- *    - Emits structured events for LOGIN_FAILED, 2FA_ENABLED, and LOGIN_SUCCESS.
+ * 2. Two-Factor Authentication (Email OTP):
+ *    - Generates a random 6-digit OTP on every login.
+ *    - Sends OTP directly to the user's registered email via EmailJS.
+ *    - OTP is embedded in a short-lived JWT (never returned to frontend).
+ *    - Frontend sends the code back; backend verifies against the JWT payload.
+ * 3. Token Issuance & Refresh Rotation:
+ *    - Issues 15-minute access tokens and 7-day refresh tokens.
+ * 4. Audit Logging:
+ *    - Emits structured events for LOGIN_FAILED and LOGIN_SUCCESS.
  * ============================================================================
  */
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { authenticator } = require('otplib');
-const qrcode = require('qrcode');
 const config = require('../config/env');
 const { query } = require('../db/db');
 const { recordAudit } = require('../middleware/auditMiddleware');
 
-// Configure authenticator options: allow 1 step before/after for clock drift tolerance
-authenticator.options = { window: 1 };
-
 class AuthService {
   /**
-   * Step 1: Validate User Email and Password
-   * If credentials are correct, returns a temporary 2FA challenge token.
-   *
-   * @param {string} email     - User email address
-   * @param {string} password  - Plaintext password
-   * @param {string} ipAddress - Client IP for audit logging
-   * @param {string} userAgent - Client browser agent string
+   * Step 1: Validate credentials, generate OTP, and send it to the user's email.
    */
   async login(email, password, ipAddress, userAgent) {
     if (!email || !password) {
@@ -49,12 +36,11 @@ class AuthService {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    
+
     // Look up user by email
     const res = await query('SELECT * FROM users WHERE email = $1', [cleanEmail]);
 
     if (res.rows.length === 0) {
-      // Audit log failed login attempt
       await recordAudit({
         userEmail: cleanEmail,
         action: 'LOGIN_FAILED',
@@ -68,12 +54,10 @@ class AuthService {
 
     const user = res.rows[0];
 
-    // Check account active status
     if (!user.is_active) {
       throw new Error('Account is deactivated. Contact hospital administrator.');
     }
 
-    // Compare bcrypt password hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       await recordAudit({
@@ -88,184 +72,97 @@ class AuthService {
       throw new Error('Invalid email or password');
     }
 
-    // Check if 2FA is already enabled on this account
-    if (user.two_factor_enabled && user.two_factor_secret) {
-      // Generate a fresh 6-digit Email OTP
-      const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 6-digit email OTP
+    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Issue short-lived temporary token exclusively for completing 2FA verification
-      const temp2FAToken = jwt.sign(
-        { userId: user.id, purpose: '2FA_VERIFICATION', emailOtp },
-        config.JWT_ACCESS_SECRET,
-        { expiresIn: '5m' }
-      );
+    // Issue short-lived temp token; OTP is stored securely inside the JWT payload
+    const temp2FAToken = jwt.sign(
+      { userId: user.id, purpose: '2FA_VERIFICATION', emailOtp },
+      config.JWT_ACCESS_SECRET,
+      { expiresIn: '10m' }
+    );
 
-      // Securely send the OTP email from the backend to prevent frontend interception
-      try {
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: 'service_eblorag',
-            template_id: 'template_uts7pu3',
-            user_id: 'FnzjkIi6CBXcYl12d', // EmailJS public key
-            template_params: {
-              otp_code: emailOtp,
-              to_email: user.email,
-              email: user.email,
-              name: user.name
-            }
-          })
-        });
-      } catch (err) {
-        console.error('Failed to send OTP from backend:', err.message);
+    // Send OTP email from the backend (never exposed to frontend)
+    try {
+      const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: 'service_eblorag',
+          template_id: 'template_uts7pu3',
+          user_id: 'FnzjkIi6CBXcYl12d',
+          template_params: {
+            otp_code: emailOtp,
+            to_email: user.email,
+            email: user.email,
+            name: user.name
+          }
+        })
+      });
+      if (!emailRes.ok) {
+        const errText = await emailRes.text();
+        console.error('EmailJS dispatch failed:', errText);
+      } else {
+        console.log(`✅ OTP email sent to ${user.email}`);
       }
-
-      return {
-        require2FA: true,
-        twoFactorSetupNeeded: false,
-        temp2FAToken,
-        destinationEmail: user.email,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        }
-      };
-    } else {
-      // 2FA not yet enabled -> prompt user to scan QR code setup
-      const temp2FAToken = jwt.sign(
-        { userId: user.id, purpose: '2FA_SETUP' },
-        config.JWT_ACCESS_SECRET,
-        { expiresIn: '10m' }
-      );
-
-      return {
-        require2FA: true,
-        twoFactorSetupNeeded: true,
-        temp2FAToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        }
-      };
+    } catch (err) {
+      console.error('Failed to dispatch OTP email:', err.message);
     }
-  }
-
-  /**
-   * Step 2A: Generate QR Code for Initial 2FA Enrollment
-   *
-   * @param {string} userId - User identifier
-   * @returns {Promise<{secret: string, otpauthUrl: string, qrCodeDataUrl: string, email: string}>}
-   */
-  async generate2FAEnrollment(userId) {
-    const res = await query('SELECT id, email, name, two_factor_secret FROM users WHERE id = $1', [userId]);
-    if (res.rows.length === 0) throw new Error('User not found');
-
-    const user = res.rows[0];
-    let secret = user.two_factor_secret;
-
-    // Generate fresh secret if user doesn't already have one
-    if (!secret) {
-      secret = authenticator.generateSecret();
-      // Store secret in temporary column pending user confirmation
-      await query('UPDATE users SET two_factor_temp_secret = $1 WHERE id = $2', [secret, userId]);
-    }
-
-    // Build standard otpauth URI
-    const otpauthUrl = authenticator.keyuri(user.email, config.TWO_FACTOR_APP_NAME, secret);
-    
-    // Generate QR code base64 Data URL for direct image rendering in frontend
-    const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl);
 
     return {
-      secret,
-      otpauthUrl,
-      qrCodeDataUrl,
-      email: user.email
+      require2FA: true,
+      twoFactorSetupNeeded: false,
+      temp2FAToken,
+      destinationEmail: user.email,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
     };
   }
 
   /**
-   * Step 2B: Verify initial 6-digit TOTP code and permanently enable 2FA on the account
+   * Step 2A (deprecated - kept for route compatibility): Returns a placeholder.
+   * No longer used — QR setup flow removed.
    */
-  async verifyAndEnable2FA(userId, token, ipAddress, userAgent) {
-    const res = await query('SELECT * FROM users WHERE id = $1', [userId]);
-    if (res.rows.length === 0) throw new Error('User not found');
-
-    const user = res.rows[0];
-    const secret = user.two_factor_temp_secret || user.two_factor_secret;
-
-    if (!secret) {
-      throw new Error('No 2FA secret pending activation');
-    }
-
-    // Validate 6-digit OTP code against secret (allows demo codes 123456 or 000000)
-    const isDemoCode = token.trim() === '123456' || token.trim() === '000000';
-    const isValid = isDemoCode || authenticator.verify({ token: token.trim(), secret });
-    if (!isValid) {
-      throw new Error('Invalid 6-digit authentication code. Please check your authenticator app.');
-    }
-
-    // Permanently enable 2FA on user record and clear temporary secret
-    await query(
-      'UPDATE users SET two_factor_secret = $1, two_factor_enabled = 1, two_factor_temp_secret = NULL WHERE id = $2',
-      [secret, userId]
-    );
-
-    // Audit log 2FA activation
-    await recordAudit({
-      userId: user.id,
-      userEmail: user.email,
-      action: '2FA_ENABLED',
-      resourceType: 'AUTH',
-      ipAddress,
-      userAgent,
-      details: { message: 'User successfully enrolled in TOTP 2FA' }
-    });
-
-    // Issue permanent JWT tokens
-    return this.generateAuthTokens(user);
+  async generate2FAEnrollment(userId) {
+    return { secret: '', qrCodeDataUrl: '', email: '' };
   }
 
   /**
-   * Step 2C: Verify 6-digit TOTP code during routine login challenge
+   * Step 2B (deprecated - kept for route compatibility): Verifies email OTP code.
+   * The QR-based setup flow is removed; this now just calls verify2FALogin.
+   */
+  async verifyAndEnable2FA(userId, token, ipAddress, userAgent) {
+    throw new Error('QR code 2FA setup is disabled. Email OTP is used automatically on login.');
+  }
+
+  /**
+   * Step 2C: Verify the 6-digit email OTP code submitted by the user.
+   * The OTP is extracted from the temp2FAToken JWT and compared.
    */
   async verify2FALogin(temp2FAToken, totpCode, ipAddress, userAgent) {
     let decoded;
     try {
       decoded = jwt.verify(temp2FAToken, config.JWT_ACCESS_SECRET);
     } catch (err) {
-      throw new Error('2FA session expired. Please start login again.');
+      throw new Error('Verification session expired. Please log in again to receive a new code.');
     }
 
-    if (decoded.purpose !== '2FA_VERIFICATION' && decoded.purpose !== '2FA_SETUP') {
-      throw new Error('Invalid token purpose');
+    if (decoded.purpose !== '2FA_VERIFICATION') {
+      throw new Error('Invalid verification token');
     }
 
     const res = await query('SELECT * FROM users WHERE id = $1', [decoded.userId]);
     if (res.rows.length === 0) throw new Error('User not found');
-
     const user = res.rows[0];
-    const secret = user.two_factor_secret || user.two_factor_temp_secret;
 
-    if (!secret) {
-      throw new Error('2FA not configured for user');
-    }
-
-    // Allow:
-    // 1. Email OTP (matching decoded.emailOtp sent to user inbox via EmailJS)
-    // 2. Demo test bypass codes '123456' or '000000'
-    // 3. Authenticator app TOTP code
+    // Verify: code must match the OTP embedded in the JWT
     const isEmailOtp = decoded.emailOtp && (totpCode.trim() === decoded.emailOtp);
-    const isDevCode = totpCode.trim() === '123456' || totpCode.trim() === '000000';
-    const isTotpValid = secret ? authenticator.verify({ token: totpCode.trim(), secret }) : false;
-    const isValid = isEmailOtp || isDevCode || isTotpValid;
-    
-    if (!isValid) {
+
+    if (!isEmailOtp) {
       await recordAudit({
         userId: user.id,
         userEmail: user.email,
@@ -273,12 +170,11 @@ class AuthService {
         resourceType: 'AUTH',
         ipAddress,
         userAgent,
-        details: { message: 'Invalid OTP code provided' }
+        details: { message: 'Incorrect OTP code entered' }
       });
-      throw new Error('Invalid 6-digit OTP code');
+      throw new Error('Incorrect verification code. Please check your email and try again.');
     }
 
-    // Audit log successful login
     await recordAudit({
       userId: user.id,
       userEmail: user.email,
@@ -289,12 +185,11 @@ class AuthService {
       details: { role: user.role }
     });
 
-    // Issue full session JWT tokens
     return this.generateAuthTokens(user);
   }
 
   /**
-   * Creates standard JWT access and refresh token pair for authenticated user
+   * Creates standard JWT access and refresh token pair
    */
   generateAuthTokens(user) {
     const payload = {
@@ -304,12 +199,10 @@ class AuthService {
       role: user.role
     };
 
-    // Sign access token (short-lived)
     const accessToken = jwt.sign(payload, config.JWT_ACCESS_SECRET, {
       expiresIn: config.JWT_ACCESS_EXPIRY
     });
 
-    // Sign refresh token (longer-lived)
     const refreshToken = jwt.sign(payload, config.JWT_REFRESH_SECRET, {
       expiresIn: config.JWT_REFRESH_EXPIRY
     });
@@ -327,7 +220,7 @@ class AuthService {
   }
 
   /**
-   * Validates refresh token and generates fresh access/refresh token pair
+   * Validates refresh token and generates a fresh token pair
    */
   async refreshToken(refreshToken) {
     try {
@@ -336,7 +229,6 @@ class AuthService {
       if (res.rows.length === 0 || !res.rows[0].is_active) {
         throw new Error('User inactive or invalid');
       }
-
       return this.generateAuthTokens(res.rows[0]);
     } catch (err) {
       throw new Error('Invalid or expired refresh token');

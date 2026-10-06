@@ -77,14 +77,14 @@ async function seed() {
     console.log('✅ Created Admin user: aswalajay200621@gmail.com / admin123');
   }
 
-  const existingStaff = await query('SELECT * FROM users WHERE email = $1', ['25cs238@gmail.com']);
+  const existingStaff = await query('SELECT * FROM users WHERE email = $1', ['studymate608@gmail.com']);
   if (existingStaff.rows.length === 0) {
     await query(
       `INSERT INTO users (id, email, name, password_hash, role, two_factor_secret, two_factor_enabled, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [staffId, '25cs238@gmail.com', 'Staff Coordinator', staffPasswordHash, 'staff', staffSecret, 1, 1]
+      [staffId, 'studymate608@gmail.com', 'Staff Coordinator', staffPasswordHash, 'staff', staffSecret, false, true]
     );
-    console.log('✅ Created Staff user: 25cs238@gmail.com / staff123');
+    console.log('✅ Created Staff user: studymate608@gmail.com / staff123');
   }
 
   // 2. Seed System Settings

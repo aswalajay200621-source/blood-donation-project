@@ -125,24 +125,69 @@ export default function NotificationsView() {
     try {
       setBulkSendingEmail(true);
       setBulkEmailMsg(null);
-      await api.notifications.bulkEmail(selectedBloodGroup);
 
-      // Dispatch live emails to eligible donors via EmailJS
+      // Fetch all eligible donors
       const donorRes = await api.donors.list({
         eligibilityStatus: 'eligible',
         bloodGroup: selectedBloodGroup
       });
       const eligible = donorRes.donors || [];
+
+      if (eligible.length === 0) {
+        setBulkEmailMsg('⚠️ No eligible donors found to send reminders to.');
+        return;
+      }
+
       let sentCount = 0;
-      // Send to eligible donors with email (capped to first 5 per click to avoid hitting monthly limits)
-      for (const d of eligible.slice(0, 5)) {
+      let failedCount = 0;
+      let lastError = null;
+
+      for (const d of eligible) {
         if (d.email) {
           const r = await sendDonorReminderEmail(d);
-          if (r.success) sentCount++;
+          if (r.success) {
+            sentCount++;
+            try {
+              await api.notifications.logBrowserDispatch({
+                donorId: d.id,
+                donorName: d.full_name,
+                channel: 'email',
+                recipient: d.email,
+                templateType: '3_month_reminder',
+                status: 'sent',
+                provider: 'emailjs_browser',
+                responsePayload: 'Delivered via EmailJS browser SDK'
+              });
+            } catch (logErr) {
+              console.warn('Logging dispatch error:', logErr);
+            }
+          } else {
+            failedCount++;
+            lastError = r.error;
+            try {
+              await api.notifications.logBrowserDispatch({
+                donorId: d.id,
+                donorName: d.full_name,
+                channel: 'email',
+                recipient: d.email,
+                templateType: '3_month_reminder',
+                status: 'not_delivered',
+                provider: 'emailjs_browser',
+                errorMessage: r.error || 'Delivery failed'
+              });
+            } catch (logErr) {
+              console.warn('Logging dispatch error:', logErr);
+            }
+          }
         }
       }
 
-      setBulkEmailMsg(`✅ Dispatched live 3-month reminder emails to ${sentCount} donor(s) via EmailJS!`);
+      if (sentCount > 0) {
+        setBulkEmailMsg(`✅ Successfully sent 3-month reminder email to ${sentCount} donor(s) (${eligible.map(e => e.full_name).join(', ')}) via EmailJS! Check inbox.`);
+      } else {
+        setBulkEmailMsg(`❌ Email reminder dispatch failed: ${lastError || 'Delivery error'}`);
+      }
+
       fetchLogs();
       fetchEligibleCount();
     } catch (err) {
@@ -207,6 +252,7 @@ export default function NotificationsView() {
 
           {/* Bulk Email Button */}
           <button
+            id="bulk-remind-top-btn"
             onClick={handleBulkEmail}
             disabled={bulkSendingWa || bulkSendingEmail || eligibleCount === 0}
             style={{
@@ -224,48 +270,110 @@ export default function NotificationsView() {
             }}
           >
             {bulkSendingEmail ? (
-              <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /><span>Sending...</span></>
+              <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /><span>Sending Emails...</span></>
             ) : (
               <>
                 <Mail size={16} />
                 <span>
                   {selectedBloodGroup === 'ALL'
-                    ? `Email All Eligible (${eligibleCount !== null ? eligibleCount : '...'})`
-                    : `Email Eligible ${selectedBloodGroup} (${eligibleCount !== null ? eligibleCount : '...'})`}
+                    ? `Bulk Email Reminders (${eligibleCount !== null ? eligibleCount : '...'})`
+                    : `Bulk Email ${selectedBloodGroup} (${eligibleCount !== null ? eligibleCount : '...'})`}
                 </span>
               </>
             )}
           </button>
 
           <button onClick={fetchLogs} className="btn btn-secondary">
-            <RefreshCw size={16} />
-            <span>Refresh</span>
+            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+            Refresh Logs
           </button>
         </div>
       </div>
 
-      {bulkEmailMsg && (
-        <div style={{
-          padding: '12px 16px',
-          background: bulkEmailMsg.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
-          border: `1px solid ${bulkEmailMsg.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`,
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: 600,
-          color: bulkEmailMsg.startsWith('✅') ? '#166534' : '#991b1b',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <span>{bulkEmailMsg}</span>
+      {/* Prominent 1-Click Bulk Remind Card */}
+      <div style={{
+        background: '#ffffff',
+        border: '1.5px solid #bbf7d0',
+        borderRadius: '12px',
+        padding: '20px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        boxShadow: '0 4px 14px rgba(22,163,74,0.08)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '8px',
+                background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <Mail size={20} color="#15803d" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  1-Click Bulk Email Reminders
+                </h3>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                  Send 3-month eligibility recall emails directly via EmailJS to all eligible registered donors in one click.
+                </span>
+              </div>
+            </div>
+          </div>
+
           <button
-            onClick={() => setBulkEmailMsg(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'inherit' }}
+            id="bulk-remind-primary-btn"
+            onClick={handleBulkEmail}
+            disabled={bulkSendingEmail || eligibleCount === 0}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 24px',
+              fontSize: '14px',
+              fontWeight: 700,
+              color: '#ffffff',
+              background: 'linear-gradient(135deg, #16a34a, #15803d)',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: (bulkSendingEmail || eligibleCount === 0) ? 'not-allowed' : 'pointer',
+              opacity: (bulkSendingEmail || eligibleCount === 0) ? 0.7 : 1,
+              boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap'
+            }}
           >
-            ✕
+            {bulkSendingEmail ? (
+              <>
+                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                <span>Sending Reminders via EmailJS...</span>
+              </>
+            ) : (
+              <>
+                <Mail size={16} />
+                <span>Bulk Remind Eligible Donors via Mail ({eligibleCount !== null ? eligibleCount : '...'})</span>
+              </>
+            )}
           </button>
         </div>
-      )}
+
+        {bulkEmailMsg && (
+          <div style={{
+            fontSize: '13px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: bulkEmailMsg.includes('❌') ? '#fef2f2' : '#f0fdf4',
+            color: bulkEmailMsg.includes('❌') ? '#991b1b' : '#14532d',
+            border: `1.5px solid ${bulkEmailMsg.includes('❌') ? '#fecaca' : '#86efac'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: 600
+          }}>
+            {bulkEmailMsg}
+          </div>
+        )}
+      </div>
 
       {/* Target Blood Group Selection & Critical Shortage Alert Bar */}
       <div className="classic-card" style={{
@@ -417,7 +525,8 @@ export default function NotificationsView() {
               style={{ minHeight: '36px', padding: '4px 10px', fontSize: '13px' }}
             >
               <option value="ALL">All Statuses</option>
-              <option value="sent">Sent / Delivered</option>
+              <option value="sent">Delivered</option>
+              <option value="not_delivered">Not Delivered</option>
               <option value="standby_skipped">Standby Skipped</option>
               <option value="failed">Failed</option>
             </select>
@@ -526,7 +635,7 @@ export default function NotificationsView() {
 
                     <td>
                       <span className={`status-pill ${log.status === 'sent' ? 'eligible' : log.status === 'standby_skipped' ? 'due-soon' : 'blocked'}`}>
-                        {log.status === 'sent' ? 'Delivered' : log.status === 'standby_skipped' ? 'Standby (Skipped)' : 'Failed'}
+                        {log.status === 'sent' ? 'Delivered' : log.status === 'standby_skipped' ? 'Standby (Skipped)' : 'Not Delivered'}
                       </span>
                     </td>
 

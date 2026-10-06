@@ -35,10 +35,13 @@ router.post('/test-email', requireRole(['admin']), notificationController.testEm
 // Send test WhatsApp message (Admin only)
 router.post('/test-whatsapp', requireRole(['admin']), notificationController.testWhatsApp);
 
-// Bulk WhatsApp to ALL eligible donors (Admin only)
-router.post('/bulk-whatsapp', requireRole(['admin']), notificationController.bulkWhatsApp);
+// Bulk WhatsApp to ALL eligible donors (Admin and Staff)
+router.post('/bulk-whatsapp', requireRole(['admin', 'staff']), notificationController.bulkWhatsApp);
 
-// Bulk Email to ALL eligible donors (Admin only)
-router.post('/bulk-email', requireRole(['admin']), notificationController.bulkEmail);
+// Bulk Email to ALL eligible donors (Admin and Staff)
+router.post('/bulk-email', requireRole(['admin', 'staff']), notificationController.bulkEmail);
+
+// Record frontend browser SDK dispatch log (Admin and Staff)
+router.post('/log-browser-dispatch', requireRole(['admin', 'staff']), notificationController.logBrowserDispatch);
 
 module.exports = router;

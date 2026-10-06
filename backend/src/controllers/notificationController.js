@@ -152,6 +152,43 @@ class NotificationController {
       return res.status(500).json({ success: false, error: err.message });
     }
   }
+
+  /**
+   * Logs a reminder dispatched via the frontend browser SDK (EmailJS)
+   * Route: POST /api/notifications/log-browser-dispatch
+   */
+  async logBrowserDispatch(req, res) {
+    try {
+      const {
+        donorId,
+        donorName,
+        channel,
+        recipient,
+        templateType,
+        status,
+        provider,
+        responsePayload,
+        errorMessage
+      } = req.body;
+
+      await notificationService.logNotification({
+        donorId,
+        donorName,
+        channel: channel || 'email',
+        recipient: recipient || 'unknown',
+        templateType: templateType || '3_month_reminder',
+        status: status || 'sent',
+        provider: provider || 'emailjs_browser',
+        responsePayload: typeof responsePayload === 'object' ? JSON.stringify(responsePayload) : responsePayload,
+        errorMessage
+      });
+
+      return res.status(200).json({ success: true, message: 'Browser notification log saved' });
+    } catch (err) {
+      console.error('Error logging browser dispatch:', err.message);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
 }
 
 module.exports = new NotificationController();

@@ -568,9 +568,13 @@ class NotificationService {
     }
 
     if (status && status !== 'ALL') {
-      sql += ` AND nl.status = $${pIdx}`;
-      params.push(status.toLowerCase());
-      pIdx++;
+      if (status.toLowerCase() === 'failed' || status.toLowerCase() === 'not_delivered') {
+        sql += ` AND (nl.status = 'failed' OR nl.status = 'not_delivered')`;
+      } else {
+        sql += ` AND nl.status = $${pIdx}`;
+        params.push(status.toLowerCase());
+        pIdx++;
+      }
     }
 
     if (bloodGroup && bloodGroup !== 'ALL') {

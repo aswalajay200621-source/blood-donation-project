@@ -46,22 +46,40 @@ export async function sendOtpEmail(otpCode, recipientEmail = TARGET_EMAIL, userN
 export async function sendDonorReminderEmail(donor) {
   try {
     const toEmail = donor.email || TARGET_EMAIL;
+    const formattedLastDate = donor.last_donation_date 
+      ? new Date(donor.last_donation_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) 
+      : 'recent donation';
+
     const templateParams = {
       donor_name: donor.full_name || 'Valued Donor',
+      name: donor.full_name || 'Valued Donor',
       blood_group: donor.blood_group || 'Unknown',
-      last_donation_date: donor.last_donation_date ? new Date(donor.last_donation_date).toLocaleDateString() : 'recent donation',
+      last_donation_date: formattedLastDate,
       to_email: toEmail,
-      email: toEmail
+      email: toEmail,
+      otp_code: `ELIGIBLE (${donor.blood_group})`,
+      message: `Dear ${donor.full_name}, it has been over 90 days since your previous whole blood donation on ${formattedLastDate}. You are now clinically eligible to donate again! Blood Group: ${donor.blood_group}.`
     };
 
-    const response = await emailjs.send(
-      SERVICE_ID,
-      REMINDER_TEMPLATE_ID,
-      templateParams,
-      PUBLIC_KEY
-    );
+    let response;
+    try {
+      response = await emailjs.send(
+        SERVICE_ID,
+        REMINDER_TEMPLATE_ID,
+        templateParams,
+        PUBLIC_KEY
+      );
+    } catch (primaryErr) {
+      console.warn('⚠️ Primary reminder template encountered issue, attempting fallback with active template:', primaryErr);
+      response = await emailjs.send(
+        SERVICE_ID,
+        OTP_TEMPLATE_ID,
+        templateParams,
+        PUBLIC_KEY
+      );
+    }
 
-    console.log(`✅ 3-month reminder sent to ${donor.full_name} (${toEmail}) via EmailJS:`, response.status);
+    console.log(`✅ 3-month reminder sent to ${donor.full_name} (${toEmail}) via EmailJS:`, response.status, response.text);
     return { success: true, response };
   } catch (error) {
     console.error(`❌ Failed to send reminder email to ${donor.full_name}:`, error);

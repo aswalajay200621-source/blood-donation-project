@@ -225,6 +225,12 @@ export const api = {
       apiRequest('/notifications/bulk-email', {
         method: 'POST',
         body: JSON.stringify({ bloodGroup: bloodGroup && bloodGroup !== 'ALL' ? bloodGroup : null })
+      }),
+    // Log reminder dispatched directly from browser SDK
+    logBrowserDispatch: (payload) =>
+      apiRequest('/notifications/log-browser-dispatch', {
+        method: 'POST',
+        body: JSON.stringify(payload)
       })
   },
 

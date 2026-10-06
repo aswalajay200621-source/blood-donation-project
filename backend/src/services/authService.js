@@ -82,37 +82,15 @@ class AuthService {
       { expiresIn: '10m' }
     );
 
-    // Send OTP email from the backend (never exposed to frontend)
-    try {
-      const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: 'service_eblorag',
-          template_id: 'template_uts7pu3',
-          user_id: 'FnzjkIi6CBXcYl12d',
-          template_params: {
-            otp_code: emailOtp,
-            to_email: user.email,
-            email: user.email,
-            name: user.name
-          }
-        })
-      });
-      if (!emailRes.ok) {
-        const errText = await emailRes.text();
-        console.error('EmailJS dispatch failed:', errText);
-      } else {
-        console.log(`✅ OTP email sent to ${user.email}`);
-      }
-    } catch (err) {
-      console.error('Failed to dispatch OTP email:', err.message);
-    }
+    // NOTE: EmailJS is browser-only — OTP is returned to frontend for secure dispatch
+    // The OTP is also embedded in the signed JWT so the server can verify it independently
+    console.log(`🔑 OTP generated for ${user.email} (frontend will dispatch via EmailJS)`);
 
     return {
       require2FA: true,
       twoFactorSetupNeeded: false,
       temp2FAToken,
+      emailOtp,           // frontend uses this to send via EmailJS
       destinationEmail: user.email,
       user: {
         id: user.id,

@@ -7,17 +7,18 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'FnzjkIi6CBXcYl12d
 const TARGET_EMAIL = import.meta.env.VITE_EMAILJS_TARGET_EMAIL || 'aswalajay200621@gmail.com';
 
 /**
- * Sends a 2FA OTP code directly to user's email using EmailJS
+ * Sends a 2FA OTP code directly to user's email using EmailJS browser SDK
  * @param {string} otpCode 6-digit verification code
  * @param {string} recipientEmail Target email address
+ * @param {string} userName Display name of recipient
  */
-export async function sendOtpEmail(otpCode, recipientEmail = TARGET_EMAIL) {
+export async function sendOtpEmail(otpCode, recipientEmail = TARGET_EMAIL, userName = 'Hospital Staff') {
   try {
     const templateParams = {
       otp_code: otpCode,
       to_email: recipientEmail,
       email: recipientEmail,
-      name: 'Hospital Administrator'
+      name: userName
     };
 
     const response = await emailjs.send(

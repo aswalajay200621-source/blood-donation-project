@@ -21,7 +21,7 @@
  * ============================================================================
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import {
   Search, CheckCircle2, AlertCircle, ShieldAlert,
@@ -39,9 +39,11 @@ export default function LiveCampEntryView({ onSelectDonor }) {
   const [gender, setGender] = useState('Male');
   const [age, setAge] = useState('');
   const [dob, setDob] = useState('');
-  const [campLocation, setCampLocation] = useState('City Hall Drive (#104)');
+  const [campLocation, setCampLocation] = useState('Main Campus Blood Drive');
   const [donationDate, setDonationDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [recentRegistrations, setRecentRegistrations] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
   
   // Clinical vitals screening state
   const [hemoglobin, setHemoglobin] = useState('');
@@ -76,6 +78,32 @@ export default function LiveCampEntryView({ onSelectDonor }) {
     if (val.length === 10) lookupDonor(val, email);
     else if (val.length < 10) setExistingDonor(null);
   };
+
+  const fetchRecentRegistrations = async () => {
+    try {
+      setLoadingRecent(true);
+      const res = await api.donors.list({ limit: 10 });
+      if (res.success && Array.isArray(res.donors)) {
+        setRecentRegistrations(res.donors.map(d => ({
+          time: d.created_at ? new Date(d.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Earlier',
+          name: d.full_name,
+          bg: d.blood_group,
+          hb: d.hemoglobin ? `${d.hemoglobin} g/dL` : '14.0 g/dL',
+          status: 'Cleared',
+          barcode: d.id ? `WB-${String(d.id).substring(0, 6).toUpperCase()}` : 'WB-001',
+          ok: true
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to load recent registrations:', err);
+    } finally {
+      setLoadingRecent(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentRegistrations();
+  }, []);
 
   /**
    * Email input handler: validates standard email format
@@ -144,6 +172,16 @@ export default function LiveCampEntryView({ onSelectDonor }) {
       });
       if (res.success) {
         setSuccessResult({ type: 'NEW_DONOR', message: `Donor ${res.donor.full_name} registered successfully!`, donor: res.donor });
+        const newRecord = {
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          name: res.donor.full_name,
+          bg: res.donor.blood_group,
+          hb: hemoglobin ? `${hemoglobin} g/dL` : '14.0 g/dL',
+          status: 'Cleared',
+          barcode: res.donor.id ? `WB-${String(res.donor.id).substring(0, 6).toUpperCase()}` : `WB-${Math.floor(1000 + Math.random() * 9000)}`,
+          ok: true
+        };
+        setRecentRegistrations(prev => [newRecord, ...prev]);
         resetForm();
       }
     } catch (err) {
@@ -165,6 +203,16 @@ export default function LiveCampEntryView({ onSelectDonor }) {
           message: `Repeat donation recorded for ${res.donor.full_name}! Next safe date: ${res.donor.next_eligible_date}.`,
           donor: res.donor
         });
+        const newRecord = {
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          name: res.donor.full_name,
+          bg: res.donor.blood_group,
+          hb: hemoglobin ? `${hemoglobin} g/dL` : '14.0 g/dL',
+          status: 'Cleared',
+          barcode: res.donor.id ? `WB-${String(res.donor.id).substring(0, 6).toUpperCase()}` : `WB-${Math.floor(1000 + Math.random() * 9000)}`,
+          ok: true
+        };
+        setRecentRegistrations(prev => [newRecord, ...prev]);
         resetForm();
       }
     } catch (err) {
@@ -542,20 +590,30 @@ export default function LiveCampEntryView({ onSelectDonor }) {
               </tr>
             </thead>
             <tbody style={{ color: '#374151' }}>
-              {[
-                { time: '11:42 AM', name: 'Karan Johar Patel', bg: 'O+', hb: '14.2 g/dL', status: 'Cleared', barcode: 'WB-104-038', ok: true },
-                { time: '11:35 AM', name: 'Ananya Sengupta', bg: 'A-', hb: '11.8 g/dL', status: 'Deferred', barcode: 'DEF-012', ok: false },
-                { time: '11:20 AM', name: 'Deepak R. Mehta', bg: 'B+', hb: '15.1 g/dL', status: 'Cleared', barcode: 'WB-104-037', ok: true },
-              ].map((row, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '12px 16px 12px 0', fontFamily: 'monospace', fontSize: '12px', color: '#6b7280' }}>{row.time}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 500, color: '#002045' }}>{row.name}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 600, color: '#b52426' }}>{row.bg}</td>
-                  <td style={{ padding: '12px 16px', color: row.ok ? '#374151' : '#dc2626', fontWeight: row.ok ? 400 : 500 }}>{row.hb}</td>
-                  <td style={{ padding: '12px 16px', color: row.ok ? '#15803d' : '#b91c1c', fontWeight: 500 }}>{row.status}</td>
-                  <td style={{ padding: '12px 0 12px 16px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: row.ok ? '#374151' : '#9ca3af' }}>{row.barcode}</td>
+              {loadingRecent ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '24px 16px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                    Loading registrations...
+                  </td>
                 </tr>
-              ))}
+              ) : recentRegistrations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '36px 16px', textAlign: 'center', color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
+                    No recent registrations recorded yet. Newly registered donors will appear here.
+                  </td>
+                </tr>
+              ) : (
+                recentRegistrations.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '12px 16px 12px 0', fontFamily: 'monospace', fontSize: '12px', color: '#6b7280' }}>{row.time}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 500, color: '#002045' }}>{row.name}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#b52426' }}>{row.bg}</td>
+                    <td style={{ padding: '12px 16px', color: row.ok ? '#374151' : '#dc2626', fontWeight: row.ok ? 400 : 500 }}>{row.hb}</td>
+                    <td style={{ padding: '12px 16px', color: row.ok ? '#15803d' : '#b91c1c', fontWeight: 500 }}>{row.status}</td>
+                    <td style={{ padding: '12px 0 12px 16px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: row.ok ? '#374151' : '#9ca3af' }}>{row.barcode}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

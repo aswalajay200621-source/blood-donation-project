@@ -39,6 +39,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'excel-import', label: 'Import Records' },
     { id: 'notifications', label: 'Send Reminders' },
     ...(isAdmin ? [
+      { id: 'staff', label: 'Staff' },
       { id: 'security', label: 'Activity Log' },
       { id: 'settings', label: 'Settings' }
     ] : [])

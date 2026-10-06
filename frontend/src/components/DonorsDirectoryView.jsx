@@ -99,7 +99,7 @@ export default function DonorsDirectoryView({ onSelectDonor }) {
               All Donors
             </h1>
             <p style={{ fontSize: '15px', color: '#64748b', margin: 0 }}>
-              {donors.length > 0 ? donors.length.toLocaleString() : '4,820'} donors registered in the system.
+              {donors.length.toLocaleString()} donors registered in the system.
             </p>
           </div>
           <a

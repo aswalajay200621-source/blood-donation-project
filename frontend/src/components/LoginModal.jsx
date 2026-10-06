@@ -66,18 +66,10 @@ export default function LoginModal() {
           setStep('2FA_SETUP');
         } else {
           setStep('2FA_VERIFY');
-          if (res.emailOtp) {
-            setCachedEmailOtp(res.emailOtp);
-            const target = res.destinationEmail || 'aswalajay200621@gmail.com';
-            setRecipientEmail(target);
-            setEmailSending(true);
-            sendOtpEmail(res.emailOtp, target).then(r => {
-              setEmailSending(false);
-              if (r.success) {
-                setEmailOtpSent(true);
-                setSuccessMsg(`Verification code sent to ${target}!`);
-              }
-            });
+          if (res.destinationEmail) {
+            setRecipientEmail(res.destinationEmail);
+            setEmailOtpSent(true);
+            setSuccessMsg(`Verification code sent to ${res.destinationEmail}!`);
           }
         }
       }
@@ -117,13 +109,6 @@ export default function LoginModal() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Quick Demo Fill
-  const fillDemo = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
   };
 
   return (
@@ -248,37 +233,6 @@ export default function LoginModal() {
               {loading ? 'Authenticating...' : 'Continue to 2FA Verification'}
               <ArrowRight size={16} />
             </button>
-
-            {/* Quick Demo Login Preset Buttons */}
-            <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid var(--border-light)' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '10px' }}>
-                Quick Demo Access (One-Click)
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => fillDemo('admin@hospital.med', 'admin123')}
-                  className="btn btn-secondary btn-sm"
-                  style={{ justifyContent: 'flex-start', textAlign: 'left', background: '#f8fafc' }}
-                >
-                  <UserCheck size={14} color="#7e22ce" />
-                  <div>
-                    <strong style={{ color: '#0f172a' }}>Chief Medical Officer (Admin)</strong> - admin@hospital.med
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo('nurse.mary@hospital.med', 'Nurse@Hospital2026!')}
-                  className="btn btn-secondary btn-sm"
-                  style={{ justifyContent: 'flex-start', textAlign: 'left', background: '#f8fafc' }}
-                >
-                  <UserCheck size={14} color="#0369a1" />
-                  <div>
-                    <strong style={{ color: '#0f172a' }}>Camp Coordinator (Staff)</strong> - nurse.mary@hospital.med
-                  </div>
-                </button>
-              </div>
-            </div>
           </form>
         )}
 
@@ -305,7 +259,7 @@ export default function LoginModal() {
                 ) : emailOtpSent ? (
                   <span>✅ 6-digit code sent to <strong>{recipientEmail || 'your email'}</strong>! Check your inbox.</span>
                 ) : (
-                  <span>Enter the 6-digit code sent to your email (or use demo code <strong>123456</strong>).</span>
+                  <span>Enter the 6-digit code sent to your email.</span>
                 )}
               </p>
             </div>
@@ -333,34 +287,15 @@ export default function LoginModal() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <button
                 type="button"
-                disabled={emailSending}
-                onClick={async () => {
-                  if (cachedEmailOtp) {
-                    setEmailSending(true);
-                    const target = recipientEmail || 'aswalajay200621@gmail.com';
-                    const r = await sendOtpEmail(cachedEmailOtp, target);
-                    setEmailSending(false);
-                    if (r.success) {
-                      setEmailOtpSent(true);
-                      setSuccessMsg(`New code resent to ${target}!`);
-                    } else {
-                      setError(`Email delivery failed: ${r.error}`);
-                    }
-                  }
+                onClick={() => {
+                  setStep('CREDENTIALS');
+                  setTotpCode('');
+                  setError('Please submit your credentials again to receive a new code.');
                 }}
                 className="btn btn-secondary btn-sm"
                 style={{ flex: 1, fontSize: '11px' }}
               >
-                {emailSending ? 'Sending...' : '📧 Resend Email Code'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTotpCode('123456')}
-                className="btn btn-secondary btn-sm"
-                style={{ flex: 1, fontSize: '11px' }}
-              >
-                Demo Code (123456)
+                📧 Resend Email Code
               </button>
             </div>
 

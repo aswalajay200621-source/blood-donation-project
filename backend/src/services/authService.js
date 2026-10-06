@@ -100,12 +100,32 @@ class AuthService {
         { expiresIn: '5m' }
       );
 
+      // Securely send the OTP email from the backend to prevent frontend interception
+      try {
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: 'service_eblorag',
+            template_id: 'template_uts7pu3',
+            user_id: 'FnzjkIi6CBXcYl12d', // EmailJS public key
+            template_params: {
+              otp_code: emailOtp,
+              to_email: user.email,
+              email: user.email,
+              name: user.name
+            }
+          })
+        });
+      } catch (err) {
+        console.error('Failed to send OTP from backend:', err.message);
+      }
+
       return {
         require2FA: true,
         twoFactorSetupNeeded: false,
         temp2FAToken,
-        emailOtp,
-        destinationEmail: user.email === 'admin@hospital.med' ? 'aswalajay200621@gmail.com' : user.email,
+        destinationEmail: user.email,
         user: {
           id: user.id,
           email: user.email,

@@ -31,6 +31,7 @@ import DonorsDirectoryView from './components/DonorsDirectoryView';
 import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import SecurityAuditView from './components/SecurityAuditView';
+import StaffManagementView from './components/StaffManagementView';
 import DonorDetailsModal from './components/DonorDetailsModal';
 import { RefreshCw } from 'lucide-react';
 
@@ -141,6 +142,11 @@ export default function App() {
         {/* Tab 7: Security Audit Logs & Compliance Verification */}
         {activeTab === 'security' && (
           <SecurityAuditView />
+        )}
+
+        {/* Tab 8: Staff / User Management */}
+        {activeTab === 'staff' && (
+          <StaffManagementView />
         )}
       </main>
 

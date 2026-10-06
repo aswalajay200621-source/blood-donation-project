@@ -1,0 +1,943 @@
+================================================================================
+  APEX HOSPITAL BLOOD DONATION MANAGEMENT PLATFORM
+  COMPLETE BUILD PROCESS DOCUMENTATION
+  Created: October 2026
+  Author: Built with Antigravity AI (Google DeepMind) Pair Programming
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1.  Project Overview
+2.  Original Starting Point
+3.  Complete Tech Stack
+4.  Repository & File Structure
+5.  Database Architecture & Schema
+6.  Backend Architecture
+7.  Frontend Architecture
+8.  Authentication & Security System
+9.  Email Integration (EmailJS)
+10. Hosting & Deployment Architecture
+11. Environment Variables Reference
+12. Step-by-Step Build Process
+13. Live URLs
+14. Known Credentials (Demo)
+15. Future Improvements
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Platform Name : Apex Hospital Blood Donation Management & Automated Reminder System
+Type          : Full-Stack Medical Web Application (Hospital Staff Portal)
+Purpose       : Manage donor registries, enforce mandatory 90-day safety gaps
+                between whole blood donations, and automate 3-month recall
+                reminder communications across Email (EmailJS) and WhatsApp.
+
+Key Features:
+  - Role-based staff authentication (Admin / Staff) with mandatory 2FA
+  - Live 6-digit OTP delivered to email inbox via EmailJS on every login
+  - Donor Registry: Add, search, filter, view complete donation histories
+  - Excel / CSV bulk import with validation, error reporting & dry-run mode
+  - Live Camp Entry: Register new donations in real time at blood camp
+  - 90-Day Eligibility Engine: Auto-computes next eligible dates per donor
+  - Bulk 3-Month Recall Reminder Emails via EmailJS to eligible donors
+  - Individual donor recall reminder dispatch from donor profile modal
+  - WhatsApp reminder dispatch (mock / Meta Cloud API / Twilio / Gupshup)
+  - Notification Audit Log: Track every email/WhatsApp sent, failed, skipped
+  - Security Audit Log: Track all login attempts, 2FA events, staff actions
+  - System Settings Panel: Configure email, WhatsApp, reminder intervals
+  - Fully responsive dark/light hospital UI
+  - Deployed live on Vercel (serverless)
+
+================================================================================
+2. ORIGINAL STARTING POINT
+================================================================================
+
+The project began as a simple static HTML portfolio website located at:
+  c:\Users\aswal\portfolio\
+  - index.html  (static homepage)
+  - style.css
+  - script.js
+
+The AI assistant was asked to build a full Hospital Blood Donation Management
+Platform FROM SCRATCH within this same portfolio folder, creating:
+  - A new /backend folder (Node.js + Express REST API)
+  - A new /frontend folder (React + Vite SPA)
+  - A new /database folder (SQL schema + sample CSV files)
+  - Complete GitHub repository + Vercel deployment pipeline
+
+================================================================================
+3. COMPLETE TECH STACK
+================================================================================
+
+FRONTEND
+--------
+  Framework       : React 18.3.1 (JSX Component Architecture)
+  Build Tool      : Vite 6.1.0 (dev server + production bundler)
+  Language        : JavaScript (ES Modules, no TypeScript)
+  Styling         : Vanilla CSS (custom design system with CSS variables)
+  Icons           : Lucide React 0.475.0
+  HTTP Client     : Native fetch() API (no Axios)
+  Email           : @emailjs/browser 5.0.2 (client-side email dispatch)
+  State Mgmt      : React Context API (AuthContext)
+  Routing         : Custom state-based view switching (no React Router)
+  Utility         : clsx 2.1.1
+
+BACKEND
+-------
+  Runtime         : Node.js (v24+)
+  Framework       : Express.js 4.21.2
+  Language        : CommonJS JavaScript (require/module.exports)
+  Authentication  : JSON Web Tokens (jsonwebtoken 9.0.2)
+  Password Hashing: bcryptjs 2.4.3
+  2FA / TOTP      : otplib 12.0.1 (RFC 6238 compliant Time-based OTP)
+  QR Code Gen     : qrcode 1.5.4
+  Excel Parsing   : exceljs 4.4.0 + xlsx 0.18.5
+  Email (SMTP)    : nodemailer 6.10.0 (standby, not active in production)
+  File Uploads    : multer 1.4.5 (Excel file ingestion)
+  Cron Scheduler  : node-cron 3.0.3 (daily eligibility scan at 08:00)
+  Security        : helmet 8.0.0 (HTTP security headers)
+  Rate Limiting   : express-rate-limit 7.5.0
+  Input Validation: validator 13.12.0
+  CORS            : cors 2.8.5
+  Config          : dotenv 16.4.7
+  PostgreSQL ORM  : pg 8.13.1 (pg-pool native connection pooling)
+  SQLite Fallback : sqlite3 5.1.7 (optionalDependencies - local dev only)
+  Dev Utility     : nodemon 3.1.9
+
+DATABASE
+--------
+  Production DB   : PostgreSQL 15 (hosted on Supabase free tier)
+  Supabase Project: mtwzqxscvxziwpcinuzo.supabase.co
+  Local Fallback  : SQLite 3 (hospital_blood_bank.sqlite - dev/offline use)
+  Schema Location : database/schema.sql
+  Seeder          : backend/src/db/seed.js
+
+EMAIL NOTIFICATIONS
+-------------------
+  Service         : EmailJS (https://www.emailjs.com)
+  Provider        : Gmail (aswalajay200621@gmail.com) via OAuth
+  EmailJS Account : ASWAL S AJAY
+  Service ID      : service_eblorag
+  OTP Template    : template_uts7pu3  (2FA login verification codes)
+  Reminder Template: template_pfqixi4 (3-month donor recall reminders)
+  Public Key      : FnzjkIi6CBXcYl12d
+  Monthly Limit   : 200 free emails/month (free plan)
+
+WHATSAPP NOTIFICATIONS
+----------------------
+  Architecture    : Abstracted multi-provider adapter pattern
+  Supported       : mock (default) | meta_cloud | twilio | gupshup
+  Current Mode    : mock (logs to DB, no real dispatch in production)
+
+VERSION CONTROL & CI/CD
+-----------------------
+  Platform        : GitHub
+  Repository      : aswalajay200621-source/blood-donation-project
+  Branch          : main
+  CI/CD           : Vercel auto-deploy on every git push to main
+
+HOSTING
+-------
+  Frontend        : Vercel (Serverless Static + SPA)
+  Backend         : Vercel (Serverless Functions via /api/index.js)
+  Database        : Supabase (managed PostgreSQL, free tier)
+  Email           : EmailJS (SaaS, no server required)
+  Scheduled Cron  : Vercel Cron Jobs (daily at 08:00 UTC)
+
+================================================================================
+4. REPOSITORY & FILE STRUCTURE
+================================================================================
+
+c:\Users\aswal\portfolio\
+├── .gitignore
+├── README.md                          <- Project documentation
+├── index.html                         <- Original static portfolio page
+├── style.css                          <- Original portfolio CSS
+├── script.js                          <- Original portfolio JS
+│
+├── database/
+│   ├── schema.sql                     <- Full PostgreSQL table definitions
+│   ├── sample_donors_valid.csv        <- Sample data for testing imports
+│   └── sample_donors_mixed_with_errors.csv  <- Test data with intentional errors
+│
+├── backend/
+│   ├── .env                           <- Production environment variables (git-ignored)
+│   ├── .env.example                   <- Safe template for environment variables
+│   ├── vercel.json                    <- Vercel serverless + cron config
+│   ├── package.json                   <- Node.js dependencies
+│   ├── hospital_blood_bank.sqlite     <- Local SQLite fallback DB file
+│   ├── api/
+│   │   └── index.js                   <- Vercel serverless function entrypoint
+│   └── src/
+│       ├── server.js                  <- Local development HTTP server
+│       ├── app.js                     <- Express app setup, middleware, routes
+│       ├── config/
+│       │   └── env.js                 <- Centralised config from process.env
+│       ├── db/
+│       │   ├── db.js                  <- pg.Pool + SQLite adapter, initDatabase()
+│       │   └── seed.js                <- Default user & sample donor seeder
+│       ├── controllers/
+│       │   ├── authController.js      <- Login, 2FA setup/verify, JWT refresh
+│       │   ├── donorController.js     <- Donor CRUD, eligibility, reminders
+│       │   ├── donationController.js  <- Donation event recording
+│       │   ├── notificationController.js  <- Bulk/test email & WhatsApp
+│       │   ├── settingsController.js  <- System settings CRUD
+│       │   └── auditController.js     <- Security audit log viewer
+│       ├── routes/
+│       │   ├── authRoutes.js
+│       │   ├── donorRoutes.js
+│       │   ├── donationRoutes.js
+│       │   ├── notificationRoutes.js
+│       │   ├── settingsRoutes.js
+│       │   └── auditRoutes.js
+│       ├── middleware/
+│       │   ├── authMiddleware.js      <- verifyToken(), requireRole()
+│       │   └── auditMiddleware.js     <- recordAudit() helper
+│       └── services/
+│           ├── authService.js         <- bcrypt, JWT, TOTP, 2FA, OTP generation
+│           ├── donorService.js        <- Donor business logic, eligibility calc
+│           ├── notificationService.js <- Email (nodemailer) + WhatsApp + logging
+│           ├── schedulerService.js    <- node-cron daily job (08:00 scan)
+│           └── excelService.js        <- Excel/CSV parse, validate, import
+│
+└── frontend/
+    ├── .env                           <- Frontend env vars (git-ignored)
+    ├── .env.example                   <- Safe template
+    ├── vercel.json                    <- SPA routing rewrite config
+    ├── package.json                   <- Frontend dependencies
+    ├── vite.config.js                 <- Vite build configuration
+    └── src/
+        ├── main.jsx                   <- React root mount
+        ├── App.jsx                    <- Root component + view switcher + nav
+        ├── index.css                  <- Full design system (CSS variables, tokens)
+        ├── context/
+        │   └── AuthContext.jsx        <- Global auth state, login/logout flows
+        ├── services/
+        │   ├── api.js                 <- All backend API call functions
+        │   └── emailService.js        <- EmailJS OTP + Reminder dispatch functions
+        └── components/
+            ├── LoginModal.jsx         <- 2FA login flow (credentials → OTP email → access)
+            ├── Navbar.jsx             <- Top navigation bar
+            ├── DashboardView.jsx      <- Stats, eligibility counts, quick actions
+            ├── DonorsDirectoryView.jsx <- Donor search, filter, paginated table
+            ├── DonorDetailsModal.jsx  <- Donor profile, history, send reminder
+            ├── LiveCampEntryView.jsx  <- Real-time donation registration form
+            ├── ExcelMigrationView.jsx <- Excel/CSV upload, validate, import
+            ├── NotificationsView.jsx  <- Bulk reminders, audit logs, diagnostics
+            ├── SecurityAuditView.jsx  <- Admin security event log viewer
+            └── SettingsView.jsx       <- System config panel (email, WhatsApp, etc.)
+
+================================================================================
+5. DATABASE ARCHITECTURE & SCHEMA
+================================================================================
+
+Database Engine: PostgreSQL 15 (Supabase cloud) / SQLite 3 (local fallback)
+
+Tables:
+-------
+
+1. users
+   - id UUID PRIMARY KEY
+   - email VARCHAR(255) UNIQUE NOT NULL
+   - name VARCHAR(255) NOT NULL
+   - password_hash VARCHAR(255) NOT NULL        <- bcrypt hash
+   - role VARCHAR(50) CHECK ('admin','staff')
+   - two_factor_secret VARCHAR(255)             <- TOTP base32 secret
+   - two_factor_enabled BOOLEAN DEFAULT FALSE
+   - two_factor_temp_secret VARCHAR(255)        <- Pending 2FA enrollment
+   - is_active BOOLEAN DEFAULT TRUE
+   - created_at, updated_at TIMESTAMP
+
+2. donors
+   - id UUID PRIMARY KEY
+   - full_name VARCHAR(255) NOT NULL
+   - phone VARCHAR(10) UNIQUE NOT NULL
+   - email VARCHAR(255) UNIQUE NOT NULL
+   - blood_group VARCHAR(5) CHECK ('A+','A-','B+','B-','AB+','AB-','O+','O-')
+   - gender, age, address, camp_location
+   - last_donation_date DATE NOT NULL
+   - next_eligible_date DATE NOT NULL           <- last_donation_date + 90 days
+   - source_of_entry ('Excel Import','Manual Entry')
+   - entered_by_staff_id UUID -> users(id)
+   - total_donations_count INTEGER DEFAULT 1
+   - last_reminder_sent_at TIMESTAMP
+   - created_at, updated_at TIMESTAMP
+
+3. donation_history
+   - id UUID PRIMARY KEY
+   - donor_id UUID -> donors(id) ON DELETE CASCADE
+   - donation_date DATE NOT NULL
+   - camp_location, units_donated, source
+   - entered_by_staff_id UUID -> users(id)
+   - notes TEXT
+   - created_at TIMESTAMP
+
+4. notification_logs
+   - id UUID PRIMARY KEY
+   - donor_id UUID -> donors(id)
+   - donor_name, channel ('whatsapp','email'), recipient
+   - template_type, status ('queued','sent','failed','standby_skipped')
+   - provider, response_payload, error_message
+   - sent_at, created_at TIMESTAMP
+
+5. audit_logs
+   - id UUID PRIMARY KEY
+   - user_id UUID -> users(id)
+   - user_email, action, resource_type, resource_id
+   - ip_address, user_agent
+   - details JSONB
+   - created_at TIMESTAMP
+
+6. system_settings
+   - key VARCHAR(100) PRIMARY KEY
+   - value TEXT NOT NULL
+   - description TEXT
+   - updated_at TIMESTAMP
+
+Indexes:
+  - donors(phone), donors(email), donors(next_eligible_date),
+    donors(blood_group), donation_history(donor_id),
+    audit_logs(action), audit_logs(created_at)
+
+================================================================================
+6. BACKEND ARCHITECTURE
+================================================================================
+
+Pattern: MVC (Model-View-Controller) with Service Layer
+
+Request Flow:
+  HTTP Request
+    → vercel.json (rewrite all to /api/index.js)
+    → api/index.js (serverless entrypoint, lazy-loads app)
+    → app.js (Express middleware chain)
+    → authMiddleware.js (JWT token verification)
+    → Route handler (e.g., donorRoutes.js)
+    → Controller (e.g., donorController.js)
+    → Service Layer (e.g., donorService.js)
+    → DB Layer (db.js → pg.Pool → Supabase PostgreSQL)
+    → Response JSON
+
+Key API Endpoints:
+  POST   /api/auth/login              <- Step 1: email + password
+  GET    /api/auth/2fa-setup          <- Generate TOTP QR code
+  POST   /api/auth/verify-2fa-setup   <- First-time 2FA enrollment
+  POST   /api/auth/verify-2fa-login   <- Step 2: TOTP/OTP verification
+  POST   /api/auth/refresh            <- JWT access token refresh
+  GET    /api/auth/me                 <- Get current user profile
+
+  GET    /api/donors                  <- List donors (filter, paginate, search)
+  POST   /api/donors                  <- Register new donor
+  GET    /api/donors/:id              <- Get single donor + history
+  PUT    /api/donors/:id              <- Update donor record
+  DELETE /api/donors/:id              <- Delete donor (admin only)
+  POST   /api/donors/:id/send-reminder <- Send recall reminder
+  GET    /api/donors/stats            <- Dashboard statistics
+
+  POST   /api/donations               <- Record new donation event
+
+  POST   /api/excel/upload            <- Upload Excel/CSV file
+  POST   /api/excel/import            <- Commit validated import
+
+  GET    /api/notifications/logs      <- Notification audit history
+  POST   /api/notifications/bulk-whatsapp <- Bulk WhatsApp reminders
+  POST   /api/notifications/bulk-email    <- Bulk email reminders
+  POST   /api/notifications/test-email    <- Test SMTP connectivity
+  POST   /api/notifications/test-whatsapp <- Test WhatsApp connectivity
+
+  GET    /api/settings                <- Fetch all system settings
+  PUT    /api/settings/:key           <- Update a system setting
+  POST   /api/settings/trigger-cron   <- Manually trigger daily cron job
+
+  GET    /api/audit                   <- Security audit log viewer
+
+  GET    /health                      <- Health check endpoint
+
+Cron Job (Daily Eligibility Scan):
+  - Runs at 08:00 AM UTC daily via Vercel Cron
+  - Scans all donors where next_eligible_date <= today
+  - Dispatches 3-month eligibility reminder via WhatsApp/Email
+  - Updates last_reminder_sent_at on donor record
+  - Logs all events to notification_logs table
+
+Security Middleware Stack:
+  - helmet() : Sets secure HTTP headers
+  - cors()   : Allows frontend domain only (FRONTEND_URL env var)
+  - express-rate-limit : 100 req/15min global, 5 login attempts/15min
+  - verifyToken() : Validates Bearer JWT on all protected routes
+  - requireRole(['admin']) : Admin-only route guard
+  - auditMiddleware : Auto-logs sensitive operations
+
+2FA Login Flow (Backend):
+  Step 1: POST /api/auth/login
+    - Validates email + bcrypt password
+    - Generates 6-digit email OTP (Math.random)
+    - Signs temp JWT: { userId, purpose: '2FA_VERIFICATION', emailOtp }
+    - Returns: temp2FAToken, emailOtp, destinationEmail, require2FA: true
+  Step 2: POST /api/auth/verify-2fa-login
+    - Verifies temp JWT signature + expiry (5 min)
+    - Accepts: emailOtp (from email) OR TOTP (authenticator app) OR demo code
+    - On success: issues 15-min access JWT + 7-day refresh JWT
+    - Records LOGIN_SUCCESS to audit_logs
+
+================================================================================
+7. FRONTEND ARCHITECTURE
+================================================================================
+
+Pattern: Single-Page Application (SPA) with React Context + State-based routing
+
+Component Hierarchy:
+  main.jsx
+    └── App.jsx
+          ├── AuthContext.Provider
+          │     ├── [if not logged in] LoginModal.jsx
+          │     └── [if logged in]
+          │           ├── Navbar.jsx
+          │           └── [active view based on state]
+          │                 ├── DashboardView.jsx
+          │                 ├── DonorsDirectoryView.jsx
+          │                 │     └── DonorDetailsModal.jsx
+          │                 ├── LiveCampEntryView.jsx
+          │                 ├── ExcelMigrationView.jsx
+          │                 ├── NotificationsView.jsx
+          │                 ├── SecurityAuditView.jsx
+          │                 └── SettingsView.jsx
+
+Auth State (AuthContext.jsx):
+  - Reads JWT from localStorage on mount
+  - Provides: user, isAuthenticated, isAdmin, loading
+  - Methods: loginWithPassword(), complete2FALogin(),
+             complete2FAEnrollment(), logout()
+
+API Service (api.js):
+  - All backend calls centralized in single api object
+  - Groups: api.auth, api.donors, api.donations, api.excel,
+            api.notifications, api.settings, api.audit
+  - Auto-attaches Bearer token from localStorage
+  - Auto-handles 401 → logout
+
+Email Service (emailService.js):
+  - sendOtpEmail(otpCode, recipientEmail)  <- 2FA OTP
+  - sendDonorReminderEmail(donor)          <- 3-month recall
+  - Uses @emailjs/browser SDK (runs in browser, no server needed)
+
+Design System (index.css):
+  - Full CSS custom property design tokens
+  - Variables: --blood-red, --brand-primary, --text-dark, etc.
+  - Components: .btn, .form-input, .classic-card, .blood-badge
+  - Responsive layout with flex/grid
+
+================================================================================
+8. AUTHENTICATION & SECURITY SYSTEM
+================================================================================
+
+Login Flow (Step by Step):
+  1. User opens app at blood-donation-project-pi.vercel.app
+  2. LoginModal shows (CREDENTIALS step)
+  3. User enters email + password (or clicks one-click demo button)
+  4. Frontend: POST /api/auth/login
+  5. Backend: validates credentials, generates 6-digit emailOtp,
+              embeds in temp JWT (5-min expiry)
+  6. Backend returns: temp2FAToken + emailOtp + destinationEmail
+  7. Frontend: calls sendOtpEmail() via EmailJS → email sent to inbox
+  8. LoginModal transitions to 2FA_VERIFY step
+  9. UI shows: "✅ 6-digit code sent to [email]. Check your inbox."
+  10. User opens email, copies 6-digit code
+  11. User enters code in OTP input field
+  12. Frontend: POST /api/auth/verify-2fa-login
+  13. Backend: decodes temp JWT, compares codes, issues full JWTs
+  14. Frontend: stores access + refresh tokens in localStorage
+  15. App unlocks: full hospital dashboard accessible
+
+OTP Code Priority (Backend Accepts):
+  1. Email OTP (live code from inbox) - PRIMARY
+  2. TOTP (Google/Microsoft Authenticator app code) - SECONDARY
+  3. Demo codes: 123456 or 000000 - ALWAYS WORKS (for demo purposes)
+
+Token Lifetimes:
+  - Access Token  : 15 minutes
+  - Refresh Token : 7 days
+  - Temp 2FA Token: 5 minutes
+
+Password Hashing: bcrypt with saltRounds=10
+
+Audit Events Logged:
+  LOGIN_SUCCESS, LOGIN_FAILED, 2FA_ENABLED, 2FA_VERIFY_FAILED
+
+Default Admin TOTP Secret (pre-seeded): JBSWY3DPEHPK3PXP
+
+================================================================================
+9. EMAIL INTEGRATION (EMAILJS)
+================================================================================
+
+Why EmailJS instead of Nodemailer/SMTP?
+  - Vercel serverless functions cannot maintain persistent SMTP connections
+  - EmailJS runs entirely in the browser (client-side SDK)
+  - No email server credentials needed on the backend
+  - Free tier: 200 emails/month, no credit card required
+  - Gmail OAuth: no plain-text password storage
+
+EmailJS Setup:
+  - Account   : ASWAL S AJAY (dashboard.emailjs.com)
+  - Service   : Gmail (service_eblorag) - Connected as aswalajay200621@gmail.com
+  - Templates :
+      template_uts7pu3 : 2FA OTP Code
+        Subject : "Your Hospital Portal 2FA Code: {{otp_code}}"
+        Body    : 6-digit {{otp_code}} display
+        To Email: {{to_email}}
+      template_pfqixi4 : 3-Month Donor Recall Reminder
+        Subject : "🩸 You are eligible to donate blood again, {{donor_name}}!"
+        Body    : Personalized reminder with name, blood group, last donation date
+        To Email: {{to_email}}
+
+How Reminder Emails Work:
+  - Individual: Click "Send Recall Reminder" on a donor profile
+      → DonorDetailsModal calls sendDonorReminderEmail(donor)
+      → EmailJS sends personalized email to donor.email
+  - Bulk: Click "Email All Eligible" in Notifications view
+      → Fetches all eligible donors from API
+      → Iterates first 5 (monthly limit protection)
+      → Sends personalized reminder email to each via EmailJS
+      → Shows success/error status banner
+
+================================================================================
+10. HOSTING & DEPLOYMENT ARCHITECTURE
+================================================================================
+
+                          GITHUB REPOSITORY
+                    aswalajay200621-source/blood-donation-project
+                               │
+                    ┌──────────┴──────────┐
+                    │                     │
+              git push main          git push main
+                    │                     │
+           ┌────────▼────────┐   ┌────────▼────────┐
+           │  VERCEL PROJECT │   │  VERCEL PROJECT │
+           │   (FRONTEND)    │   │    (BACKEND)    │
+           │                 │   │                 │
+           │  Root Dir:      │   │  Root Dir:      │
+           │  /frontend      │   │  /backend       │
+           │                 │   │                 │
+           │  Build: vite    │   │  Entrypoint:    │
+           │  Framework: Vite│   │  api/index.js   │
+           │                 │   │  (Serverless)   │
+           └────────┬────────┘   └────────┬────────┘
+                    │                     │
+         blood-donation-project-pi   blood-donation-backend-rho
+               .vercel.app               .vercel.app
+                    │                     │
+                    │         ┌───────────┘
+                    │         │  API Calls (HTTPS)
+                    │         ▼
+                    │   ┌─────────────────────────┐
+                    │   │     SUPABASE            │
+                    │   │  PostgreSQL Database     │
+                    │   │  mtwzqxscvxziwpcinuzo   │
+                    │   │  .supabase.co           │
+                    │   └─────────────────────────┘
+                    │
+                    ▼
+               ┌────────────────────────┐
+               │       EMAILJS          │
+               │  Client-side email SDK │
+               │  Gmail SMTP via OAuth  │
+               │  200 emails/month free │
+               └────────────────────────┘
+
+Frontend Vercel Config (frontend/vercel.json):
+  - SPA rewrite: all routes → /index.html (enables client-side routing)
+
+Backend Vercel Config (backend/vercel.json):
+  - All HTTP routes → /api/index.js (serverless function)
+  - Cron: GET /api/settings/trigger-cron at "0 8 * * *" (08:00 UTC daily)
+
+Vercel Environment Variables (Backend Project):
+  DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, NODE_ENV=production,
+  FRONTEND_URL=https://blood-donation-project-pi.vercel.app, etc.
+
+Vercel Environment Variables (Frontend Project):
+  VITE_API_BASE_URL=https://blood-donation-backend-rho.vercel.app/api,
+  VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID,
+  VITE_EMAILJS_REMINDER_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY
+
+================================================================================
+11. ENVIRONMENT VARIABLES REFERENCE
+================================================================================
+
+BACKEND (.env):
+  PORT=5000
+  NODE_ENV=development / production
+  FRONTEND_URL=http://localhost:5173  (or Vercel frontend URL)
+
+  DATABASE_URL=postgresql://postgres:PASSWORD@HOST:5432/postgres
+  PG_HOST=db.mtwzqxscvxziwpcinuzo.supabase.co
+  PG_PORT=5432
+  PG_USER=postgres
+  PG_PASSWORD=hbabb&@#2026
+  PG_DATABASE=postgres
+  USE_SQLITE_FALLBACK=false
+
+  JWT_ACCESS_SECRET=hospital_blood_bank_super_secret_jwt_access_token_key_2026!#$
+  JWT_REFRESH_SECRET=hospital_blood_bank_super_secret_jwt_refresh_token_key_2026!#$
+  JWT_ACCESS_EXPIRY=15m
+  JWT_REFRESH_EXPIRY=7d
+
+  TWO_FACTOR_APP_NAME=HospitalBloodBank
+
+  DEFAULT_ADMIN_EMAIL=admin@hospital.med
+  DEFAULT_ADMIN_PASSWORD=admin123
+
+  RATE_LIMIT_WINDOW_MS=900000
+  RATE_LIMIT_MAX_REQUESTS=100
+  LOGIN_RATE_LIMIT_MAX=5
+  LOGIN_RATE_LIMIT_WINDOW_MS=900000
+
+  EMAIL_ENABLED=false
+  SMTP_HOST=smtp.hospital.med
+  SMTP_PORT=587
+  SMTP_SECURE=false
+  SMTP_USER=donations@hospital.med
+  SMTP_PASS=hospital_smtp_password_here
+  EMAIL_FROM="Apex Hospital Blood Center" <donations@hospital.med>
+
+  WHATSAPP_PROVIDER=mock
+  WHATSAPP_ENABLED=true
+  WHATSAPP_API_KEY=mock_api_key_or_access_token
+  WHATSAPP_PHONE_NUMBER_ID=109283746592817
+  WHATSAPP_TEMPLATE_3MONTH=donor_eligibility_reminder_v1
+  WHATSAPP_TEMPLATE_THANKYOU=donor_appreciation_receipt_v1
+
+FRONTEND (.env):
+  VITE_API_BASE_URL=https://blood-donation-backend-rho.vercel.app/api
+  VITE_EMAILJS_SERVICE_ID=service_eblorag
+  VITE_EMAILJS_TEMPLATE_ID=template_uts7pu3
+  VITE_EMAILJS_REMINDER_TEMPLATE_ID=template_pfqixi4
+  VITE_EMAILJS_PUBLIC_KEY=FnzjkIi6CBXcYl12d
+  VITE_EMAILJS_TARGET_EMAIL=aswalajay200621@gmail.com
+
+================================================================================
+12. STEP-BY-STEP BUILD PROCESS
+================================================================================
+
+PHASE 1: PROJECT FOUNDATION
+----------------------------
+Step 01: Initialized folder structure
+         Created /backend and /frontend directories inside portfolio root
+
+Step 02: Designed PostgreSQL schema (database/schema.sql)
+         - 6 tables: users, donors, donation_history, notification_logs,
+           audit_logs, system_settings
+         - Performance indexes on phone, email, blood_group, next_eligible_date
+
+Step 03: Set up backend Node.js project
+         - npm init, installed all Express + JWT + bcrypt + pg dependencies
+         - Created MVC folder structure: config/, controllers/, routes/,
+           middleware/, services/, db/
+
+Step 04: Built database layer (db.js)
+         - pg.Pool connection to PostgreSQL
+         - SQLite fallback for local dev without PostgreSQL
+         - initDatabase() function to create tables from schema
+         - Lazy-loaded sqlite3 to avoid Vercel build failures
+
+Step 05: Built authService.js
+         - bcrypt password hashing and verification
+         - otplib TOTP secret generation + QR code URI
+         - JWT access/refresh token issuance
+         - 2FA enrollment and verification flows
+         - Email OTP generation (6-digit Math.random)
+         - Audit logging integration
+
+Step 06: Built donorService.js
+         - Full CRUD operations for donors
+         - 90-day eligibility calculation (last_donation_date + 90 days)
+         - Smart search and multi-filter query builder
+         - Donation history ledger management
+         - Statistics aggregation queries
+
+PHASE 2: CORE BACKEND FEATURES
+--------------------------------
+Step 07: Built notificationService.js
+         - Multi-provider WhatsApp adapter (mock/meta/twilio/gupshup)
+         - Nodemailer SMTP email transporter
+         - 3-month eligibility reminder dispatchers
+         - Bulk email + bulk WhatsApp functions
+         - HTML email template renderer
+         - notification_logs table operations
+
+Step 08: Built schedulerService.js
+         - node-cron job running daily at 08:00
+         - Scans eligible donors and dispatches reminders automatically
+         - Updates last_reminder_sent_at after dispatch
+
+Step 09: Built excelService.js
+         - Excel file parsing with exceljs + xlsx
+         - Row-by-row validation (blood group, phone, date formats)
+         - Dry-run preview mode (validate without committing)
+         - Duplicate detection against existing database records
+         - Batch import commit with audit logging
+
+Step 10: Built all Controllers and Routes
+         - authController, donorController, donationController
+         - notificationController, settingsController, auditController
+         - Express Router wiring with auth middleware guards
+
+Step 11: Built Express app.js
+         - helmet, cors, rate limiting, json parser
+         - All route mounts under /api prefix
+         - /health endpoint for Vercel deployment verification
+
+Step 12: Built api/index.js (Vercel Serverless Entrypoint)
+         - Lazy-loads Express app for cold-start performance
+         - Handles all requests via module.exports = app
+
+PHASE 3: FRONTEND
+-----------------
+Step 13: Created Vite + React project (frontend/)
+         - npm create vite, React template
+         - Installed lucide-react, clsx, @emailjs/browser
+
+Step 14: Built CSS Design System (index.css)
+         - CSS custom properties for colors, typography, spacing
+         - Component classes: .btn, .form-input, .classic-card, etc.
+         - Hospital-themed: blood red (#dc2626) primary accent
+         - Dark/light responsive layout
+
+Step 15: Built AuthContext.jsx
+         - React Context for global auth state
+         - JWT storage in localStorage
+         - loginWithPassword(), complete2FALogin(), complete2FAEnrollment()
+         - Token refresh logic
+
+Step 16: Built LoginModal.jsx (3-step authentication UI)
+         - CREDENTIALS step: email + password form + one-click demo buttons
+         - 2FA_VERIFY step: 6-digit OTP input with EmailJS send status
+         - 2FA_SETUP step: QR code display for first-time authenticator setup
+         - Resend Email Code button
+         - Demo Code auto-fill button (123456)
+
+Step 17: Built api.js centralized API client
+         - All API call functions grouped by resource
+         - Auto-attaches Authorization: Bearer header
+         - Error handling and response parsing
+
+Step 18: Built DashboardView.jsx
+         - Live stat cards: total donors, today's eligible count, etc.
+         - Blood group distribution display
+         - Quick action buttons
+
+Step 19: Built DonorsDirectoryView.jsx
+         - Server-side paginated donor table
+         - Search by name/phone/email
+         - Multi-filter: blood group, eligibility status
+         - Eligibility status badges (Eligible / Cooldown / Unknown)
+         - Click donor → DonorDetailsModal
+
+Step 20: Built DonorDetailsModal.jsx
+         - Full donor clinical profile view
+         - Contact info, eligibility card, donation history table
+         - "Send Recall Reminder" button (triggers EmailJS)
+
+Step 21: Built LiveCampEntryView.jsx
+         - Phone number lookup to find existing donors
+         - One-click new donation recording form
+         - Auto-recalculates next eligible date on submission
+         - Receipt-style confirmation display
+
+Step 22: Built ExcelMigrationView.jsx
+         - Drag and drop / file picker for .xlsx/.csv
+         - Validation preview table with error highlighting
+         - Row-level error messages (invalid blood group, duplicate phone, etc.)
+         - Import summary: rows accepted / rejected / imported
+
+Step 23: Built NotificationsView.jsx
+         - Blood group selector for targeted dispatch
+         - Bulk WhatsApp Reminder button
+         - Bulk Email Reminder button (EmailJS dispatch)
+         - Success/error status banner after bulk send
+         - Notification audit log table with channel/status filters
+
+Step 24: Built SecurityAuditView.jsx
+         - Admin-only view of all system security events
+         - Filterable audit log table
+
+Step 25: Built SettingsView.jsx
+         - Admin panel for system configuration
+         - WhatsApp provider, email toggles, reminder interval
+         - Live save with confirmation feedback
+
+Step 26: Built Navbar.jsx
+         - Hospital branding, user role badge
+         - Navigation tabs, logout button
+
+PHASE 4: DEPLOYMENT
+--------------------
+Step 27: Created GitHub repository
+         - Pushed all code to aswalajay200621-source/blood-donation-project
+         - Configured .gitignore (excluded .env files, node_modules)
+
+Step 28: Set up Supabase PostgreSQL
+         - Created free Supabase project
+         - Ran schema.sql in Supabase SQL Editor
+         - Created admin and staff users via seed.js
+         - Connection string stored in backend .env
+
+Step 29: Deployed Backend to Vercel
+         - Created Vercel project "blood-donation-backend"
+         - Set Root Directory: /backend
+         - Framework: Other (Node.js serverless)
+         - Added all environment variables in Vercel dashboard
+         - Live URL: https://blood-donation-backend-rho.vercel.app
+
+Step 30: Deployed Frontend to Vercel
+         - Created Vercel project "blood-donation-frontend"
+         - Set Root Directory: /frontend
+         - Framework: Vite
+         - Added VITE_API_BASE_URL environment variable
+         - Live URL: https://blood-donation-project-pi.vercel.app
+
+PHASE 5: EMAILJS INTEGRATION
+------------------------------
+Step 31: Created EmailJS account (ASWAL S AJAY)
+         - Connected Gmail account (aswalajay200621@gmail.com) as email service
+         - Service ID: service_eblorag
+
+Step 32: Created 2FA OTP Email Template (template_uts7pu3)
+         - Subject: "Your Hospital Portal 2FA Code: {{otp_code}}"
+         - Body: Clean HTML with large red OTP code display
+         - To Email: {{to_email}}
+
+Step 33: Installed @emailjs/browser in frontend
+         npm install @emailjs/browser
+
+Step 34: Created emailService.js
+         - sendOtpEmail() function for 2FA codes
+         - sendDonorReminderEmail() function for 3-month recalls
+
+Step 35: Wired 2FA OTP into Login flow
+         - Backend generates emailOtp on successful password validation
+         - Frontend receives OTP + destinationEmail in login response
+         - Frontend calls sendOtpEmail() → email delivered to inbox
+         - User enters email code → backend validates against temp JWT claim
+
+Step 36: Created Donor Reminder Email Template (template_pfqixi4)
+         - Subject: "🩸 You are eligible to donate blood again, {{donor_name}}!"
+         - Body: Personalized with donor_name, blood_group, last_donation_date
+         - To Email: {{to_email}}
+
+Step 37: Wired reminder emails into DonorDetailsModal + NotificationsView
+         - Individual: "Send Recall Reminder" → sendDonorReminderEmail(donor)
+         - Bulk: "Email All Eligible" → loop eligible donors → sendDonorReminderEmail()
+         - Bulk capped at first 5 donors per click (free tier protection)
+
+PHASE 6: CREDENTIALS & FIXES
+------------------------------
+Step 38: Updated admin password to admin123
+         - Ran bcrypt hash update directly on Supabase PostgreSQL
+         - Updated seed.js, .env, LoginModal.jsx, README.md
+
+Step 39: Fixed multiple Vercel serverless compatibility issues:
+         - Moved sqlite3 to optionalDependencies (native binary issue)
+         - Removed filesystem schema.sql read in production
+         - Increased PostgreSQL connection timeout to 8 seconds
+         - Lazy-loaded sqlite3 module to prevent Vercel build crash
+
+Step 40: Fixed demo 2FA codes
+         - Made 123456 and 000000 work as bypass codes in ALL environments
+         - Works for both verifyAndEnable2FA and verify2FALogin
+
+Step 41: Added EmailJS environment variables to Vercel Frontend project
+         - VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID,
+           VITE_EMAILJS_REMINDER_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY
+
+================================================================================
+13. LIVE URLS
+================================================================================
+
+Frontend (User-facing app):
+  https://blood-donation-project-pi.vercel.app
+
+Backend API (Internal, not for direct user access):
+  https://blood-donation-backend-rho.vercel.app
+  https://blood-donation-backend-rho.vercel.app/health  <- Health check
+
+GitHub Repository:
+  https://github.com/aswalajay200621-source/blood-donation-project
+
+EmailJS Dashboard:
+  https://dashboard.emailjs.com/admin
+
+Supabase Dashboard:
+  https://supabase.com/dashboard/project/mtwzqxscvxziwpcinuzo
+
+================================================================================
+14. KNOWN CREDENTIALS (DEMO)
+================================================================================
+
+IMPORTANT: These are demo credentials for a hospital management demo system.
+           Change these in production!
+
+Admin Account:
+  Email    : admin@hospital.med
+  Password : admin123
+  Role     : Admin (full access)
+  2FA OTP  : Sent to aswalajay200621@gmail.com OR use demo code 123456
+
+Staff Account:
+  Email    : nurse.mary@hospital.med
+  Password : Nurse@Hospital2026!
+  Role     : Staff (limited access, no delete/settings)
+  2FA OTP  : Use demo code 123456
+
+Supabase DB:
+  Host     : db.mtwzqxscvxziwpcinuzo.supabase.co
+  Port     : 5432
+  User     : postgres
+  Password : hbabb&@#2026
+  Database : postgres
+
+================================================================================
+15. FUTURE IMPROVEMENTS (PLANNED / POSSIBLE)
+================================================================================
+
+1.  Real donor email addresses in database
+    Currently donors use placeholder emails; in production, real donor
+    emails would allow direct reminder delivery to their inboxes.
+
+2.  Admin email address as a real Gmail account
+    The admin login is admin@hospital.med (a mock domain). In production,
+    replace with a real hospital staff Gmail so 2FA OTP goes to their
+    actual inbox.
+
+3.  WhatsApp Business API activation
+    Currently WHATSAPP_PROVIDER=mock. Can activate Meta Cloud API or
+    Twilio with real credentials to send actual WhatsApp messages.
+
+4.  SMTP email server (nodemailer)
+    Nodemailer is built in but disabled (EMAIL_ENABLED=false). Enable with
+    real hospital SMTP server credentials for scalable email volume.
+
+5.  Upgrade EmailJS to paid plan
+    Free tier: 200 emails/month. Hospital with many donors needs upgrade.
+
+6.  Supabase Connection Pooler
+    Switch from direct Supabase host (port 5432) to Supabase Pooler URL
+    (port 6543) for better serverless connection management.
+
+7.  PDF donor certificate generation
+    Generate printable blood donation certificates per donor.
+
+8.  Blood inventory module
+    Track blood units collected per camp, blood group stock levels, expiry.
+
+9.  Mobile app / PWA
+    Convert frontend to Progressive Web App for offline camp use.
+
+10. Multi-hospital tenant support
+    Allow multiple hospital branches with separate data partitions.
+
+================================================================================
+END OF DOCUMENTATION
+Generated: October 2026
+Platform: Apex Hospital Blood Donation Management System
+================================================================================

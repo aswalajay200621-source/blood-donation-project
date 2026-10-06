@@ -33,6 +33,7 @@ const notificationRoutes = require('./routes/notificationRoutes'); // Reminder d
 const dashboardRoutes = require('./routes/dashboardRoutes'); // Blood stock metrics
 const settingsRoutes = require('./routes/settingsRoutes');   // System config & cron triggers
 const auditRoutes = require('./routes/auditRoutes');         // Security audit event logs
+const userRoutes = require('./routes/userRoutes');           // Staff/User management
 
 const app = express();
 
@@ -128,6 +129,7 @@ app.use('/api/notifications', notificationRoutes); // Reminder channel endpoints
 app.use('/api/dashboard', dashboardRoutes);     // Clinical overview metrics
 app.use('/api/settings', settingsRoutes);       // Hospital system configuration
 app.use('/api/audit', auditRoutes);             // Security audit log endpoints
+app.use('/api/users', userRoutes);              // User management endpoints
 
 // ============================================================
 // 7. 404 Catch-All — Unknown Route Responses

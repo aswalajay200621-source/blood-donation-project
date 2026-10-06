@@ -259,5 +259,17 @@ export const api = {
       const query = new URLSearchParams(params).toString();
       return apiRequest(`/audit/logs?${query}`);
     }
+  },
+
+  // ==========================================
+  // Staff / User Management
+  // ==========================================
+  users: {
+    // List all users
+    list: () => apiRequest('/users'),
+    // Create new staff account
+    create: (userData) => apiRequest('/users', { method: 'POST', body: JSON.stringify(userData) }),
+    // Delete user account
+    delete: (userId) => apiRequest(`/users/${userId}`, { method: 'DELETE' })
   }
 };

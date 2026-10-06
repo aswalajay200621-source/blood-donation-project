@@ -68,81 +68,39 @@ export default function DashboardView({ onNavigate, onSelectDonor }) {
     }
   };
 
-  // Default design counts with live DB overlay when available
-  const bloodVaultData = [
-    {
-      group: 'O+',
-      units: stats?.bloodGroupCounts?.['O+'] !== undefined && stats.bloodGroupCounts['O+'] > 0 ? stats.bloodGroupCounts['O+'] : 54,
-      supply: '22 Days',
-      status: 'Sufficient',
-      statusType: 'success',
-      clinicalNote: 'Optimal storage load',
-      isCritical: false
-    },
-    {
-      group: 'O-',
-      units: stats?.bloodGroupCounts?.['O-'] !== undefined && stats.bloodGroupCounts['O-'] > 0 ? stats.bloodGroupCounts['O-'] : 4,
-      supply: '2 Days',
-      status: 'Critical Low',
-      statusType: 'critical',
-      clinicalNote: 'Notify Donors',
-      isCritical: true
-    },
-    {
-      group: 'A+',
-      units: stats?.bloodGroupCounts?.['A+'] !== undefined && stats.bloodGroupCounts['A+'] > 0 ? stats.bloodGroupCounts['A+'] : 41,
-      supply: '18 Days',
-      status: 'Sufficient',
-      statusType: 'success',
-      clinicalNote: 'Cross-matching stable',
-      isCritical: false
-    },
-    {
-      group: 'A-',
-      units: stats?.bloodGroupCounts?.['A-'] !== undefined && stats.bloodGroupCounts['A-'] > 0 ? stats.bloodGroupCounts['A-'] : 11,
-      supply: '8 Days',
-      status: 'Moderate',
-      statusType: 'warning',
-      clinicalNote: 'Routine monitoring',
-      isCritical: false
-    },
-    {
-      group: 'B+',
-      units: stats?.bloodGroupCounts?.['B+'] !== undefined && stats.bloodGroupCounts['B+'] > 0 ? stats.bloodGroupCounts['B+'] : 48,
-      supply: '20 Days',
-      status: 'Sufficient',
-      statusType: 'success',
-      clinicalNote: 'Safe reserve level',
-      isCritical: false
-    },
-    {
-      group: 'B-',
-      units: stats?.bloodGroupCounts?.['B-'] !== undefined && stats.bloodGroupCounts['B-'] > 0 ? stats.bloodGroupCounts['B-'] : 3,
-      supply: '2 Days',
-      status: 'Critical Low',
-      statusType: 'critical',
-      clinicalNote: 'Notify Donors',
-      isCritical: true
-    },
-    {
-      group: 'AB+',
-      units: stats?.bloodGroupCounts?.['AB+'] !== undefined && stats.bloodGroupCounts['AB+'] > 0 ? stats.bloodGroupCounts['AB+'] : 19,
-      supply: '16 Days',
-      status: 'Sufficient',
-      statusType: 'success',
-      clinicalNote: 'Plasma baseline normal',
-      isCritical: false
-    },
-    {
-      group: 'AB-',
-      units: stats?.bloodGroupCounts?.['AB-'] !== undefined && stats.bloodGroupCounts['AB-'] > 0 ? stats.bloodGroupCounts['AB-'] : 6,
-      supply: '9 Days',
-      status: 'Moderate',
-      statusType: 'warning',
-      clinicalNote: 'Monitored for surgery list',
-      isCritical: false
+  const getGroupStats = (group) => {
+    const units = stats?.bloodGroupCounts?.[group] ?? 0;
+    const isCritical = units < 5;
+    let statusType = 'success';
+    let status = 'Sufficient';
+    let supply = `${units} Days`;
+    
+    if (units === 0) {
+      statusType = 'critical';
+      status = 'Empty';
+    } else if (isCritical) {
+      statusType = 'critical';
+      status = 'Critical Low';
+    } else if (units < 15) {
+      statusType = 'warning';
+      status = 'Moderate';
     }
+
+    return { group, units, supply, status, statusType, isCritical, clinicalNote: isCritical ? 'Notify Donors' : 'Stock level monitored' };
+  };
+
+  const bloodVaultData = [
+    getGroupStats('O+'),
+    getGroupStats('O-'),
+    getGroupStats('A+'),
+    getGroupStats('A-'),
+    getGroupStats('B+'),
+    getGroupStats('B-'),
+    getGroupStats('AB+'),
+    getGroupStats('AB-')
   ];
+
+  const criticalGroups = bloodVaultData.filter(g => g.isCritical);
 
   const currentDateFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -183,43 +141,44 @@ export default function DashboardView({ onNavigate, onSelectDonor }) {
       )}
 
       {/* Alert Strip (Subtle, uncluttered notice) */}
-      <div className="mb-12 border-l-4 border-secondary bg-surface-subtle p-5 rounded-r-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-secondary text-22px mt-0.5">error</span>
-          <div>
-            <h2 className="text-sm font-semibold text-text-main">Some Blood Groups Are Running Low</h2>
-            <p className="text-sm text-text-muted mt-0.5">
-              O-Negative ({bloodVaultData[1].units} units) and B-Negative ({bloodVaultData[5].units} units) are very low. Please send reminders to donors.
-            </p>
+      {criticalGroups.length > 0 && (
+        <div className="mb-12 border-l-4 border-secondary bg-surface-subtle p-5 rounded-r-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-secondary text-22px mt-0.5">error</span>
+            <div>
+              <h2 className="text-sm font-semibold text-text-main">Blood Groups Running Low</h2>
+              <p className="text-sm text-text-muted mt-0.5">
+                {criticalGroups.map(g => `${g.group} (${g.units} units)`).join(', ')} {criticalGroups.length === 1 ? 'is' : 'are'} critically low. Please send reminders to donors.
+              </p>
+            </div>
           </div>
+          <button
+            onClick={handleTriggerDailyScan}
+            disabled={triggeringCron}
+            className="inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:text-secondary-dark transition-colors self-start md:self-center shrink-0 bg-transparent border-0 cursor-pointer p-0"
+          >
+            {triggeringCron ? 'Sending...' : 'Send Reminders Now'}
+            <span className="material-symbols-outlined text-base">arrow_forward</span>
+          </button>
         </div>
-        <button
-          onClick={handleTriggerDailyScan}
-          disabled={triggeringCron}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:text-secondary-dark transition-colors self-start md:self-center shrink-0 bg-transparent border-0 cursor-pointer p-0"
-        >
-          {triggeringCron ? 'Sending...' : 'Send Reminders Now'}
-          <span className="material-symbols-outlined text-base">arrow_forward</span>
-        </button>
-      </div>
+      )}
 
       {/* 4 Clean Open Key Metrics (Divider aligned, no heavy cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-12">
         <div className="bg-white border border-surface-border rounded-md p-6 shadow-sm">
           <div className="text-xs uppercase tracking-wider font-semibold text-text-muted mb-2">Total Donors</div>
           <div className="text-3xl font-bold text-primary tracking-tight">
-            {stats?.totalDonors ? stats.totalDonors.toLocaleString() : '4,820'}
+            {(stats?.totalDonors ?? 0).toLocaleString()}
           </div>
           <div className="text-xs text-text-muted mt-2 flex items-center gap-1.5">
-            <span className="text-state-success font-medium">+142</span>
-            <span>added this month</span>
+            <span>Registered in registry</span>
           </div>
         </div>
 
         <div className="bg-white border border-surface-border rounded-md p-6 shadow-sm">
           <div className="text-xs uppercase tracking-wider font-semibold text-text-muted mb-2">Ready to Donate</div>
           <div className="text-3xl font-bold text-primary tracking-tight">
-            {stats?.eligibleNowCount ? stats.eligibleNowCount.toLocaleString() : '1,248'}
+            {(stats?.eligibleNowCount ?? 0).toLocaleString()}
           </div>
           <div className="text-xs text-text-muted mt-2 flex items-center gap-1.5">
             <span>Last donated 90+ days ago</span>
@@ -229,7 +188,7 @@ export default function DashboardView({ onNavigate, onSelectDonor }) {
         <div className="bg-white border border-surface-border rounded-md p-6 shadow-sm">
           <div className="text-xs uppercase tracking-wider font-semibold text-text-muted mb-2">Units Collected This Month</div>
           <div className="text-3xl font-bold text-primary tracking-tight">
-            {stats?.upcomingThisWeekCount || 618} <span className="text-base font-normal text-text-muted">Units</span>
+            {stats?.upcomingThisWeekCount ?? 0} <span className="text-base font-normal text-text-muted">Units</span>
           </div>
           <div className="text-xs text-text-muted mt-2 flex items-center gap-1.5">
             <span>Target: 650 units</span>
